@@ -1,0 +1,261 @@
+#d Recheck
+
+Recheck is a tool for checking the correctness of production data, inspired by an internal tool at Stripe.
+
+Have you ever pulled a record out of your database and been surprised to find it's not valid?
+
+    Order.find(123).valid?
+    => false
+
+Huh!?
+
+You've probably seen this sort of problem, where production data is inconsistent or "impossible".
+Not every row, but one in a few hundred thousand or a few million.
+When you have a background job, hit a third-party API, or have a state machine that measures transition in days,
+you sometimes get these bad records where there's a few `NULL`s where there shouldn't be,
+a couple fields on a record contradict each other, or associated records are missing.
+
+**It's not your codebase. This happens in every database at scale.**
+
+In theory no background job would crash at 3 AM halfway through its run and every business rule would have perfectly reliable SQL constraints.
+But the cost of perfection is very high, perhaps infinitely high.
+
+**Recheck is the missing tool for pragmatically addressing data integrity.**
+
+When you see a user report or an exception, you have to query to see if there's more bad data.
+With Recheck you wrap up that query in a "check", a small bit of code like a unit test for your production data.
+Out of the box it can detect and use your model validations, but the real value is in writing your own checks as you implement code or investigate bugs.
+You can manually run your checks, or stand up a Recheck service to run them continuously in the background.
+
+It's worth writing a check any time you have:
+
+- A background job that edits or adds records
+- A null is replaced by a third-party API call
+- A painful bug you don't want to see again
+- A slow state machine
+- Any technical or business rule logic that is difficult to write a db constraint for
+
+(Not using Ruby? Sign up to [get notified](https://recheck.dev) when Recheck is available in more languages.)
+
+
+## Install and Configure
+
+Add Recheck to your `Gemfile`:
+
+    gem "recheck"
+
+Recheck runs against production data, so don't put it only in a `development` or `test` group like a testing tool.
+
+Generate basic checks based on your existing models with:
+
+    $ bundle exec recheck --setup
+    creating recheck/
+    generating recheck/check_helper.rb
+    creating recheck/site/domain_check.rb
+    creating recheck/site/tls_check.rb
+    detected ActiveRecord models, creating recheck/model/
+      app/models/comment.rb -> recheck/model/comment_check.rb
+      app/models/story.rb -> recheck/model/story_check.rb
+      app/models/user.rb -> recheck/model/user_check.rb
+    detected ActiveJob jobs, creating recheck/job/
+      app/jobs/user_cleanup_job.rb -> recheck/job/user_cleanup_check.rb
+    detected Sidekiq workers, creating recheck/worker/
+      app/workers/refresh.rb -> recheck/worker/refresh_check.rb
+
+Run `git add --all` and `git commit` to record this baseline.
+
+**You should immediately run these default checks to start finding bad data.**
+
+
+## Run Your Checks
+
+Keep in mind: This runs against _production_ and will usually run full table scans.
+If you have a huge amount of data this could be a lot of I/O.
+If you're large enough to have an OLAP/data warehouse, consult with your data team about running against that instead of your OLTP.
+
+Run your checks:
+
+    $ bundle exec recheck
+    CommentCheck ... 2,442 pass 0 fail
+    StoryCheck .. 1,196 pass 0 fail
+    UserCheck ..x. 3,501 pass 3 fail
+    Completed in 28 seconds
+
+Each `.` is a set of 1,000 records passing, each `x` is a set with at least one failure.
+The exit code is `0` when all checks pass,
+`1` when any checks fail, or
+`2` when any checks error out (takes precedence).
+
+A failure looks like:
+
+    $ bundle exec recheck recheck/model/user.rb
+    UserCheck ...x. 3,501 pass, 3 fail
+
+    Failures:
+    UserLoginCheck#check_users_are_synced_to_ldap recheck/model/user_check.rb:46
+      2342
+    UserLoginCheck#Bug1422 recheck/model/user_check.rb:105
+      1755
+      2342
+
+By default `recheck` only prints to the command line, but should be configured to notify teams by email/issue tracker/chat message in regular use
+(see example checks and the Production section below).
+
+You can run subsets of checks by filename or line number:
+
+    $ recheck recheck/job
+    $ recheck recheck/job/user* recheck/doc_store/integration.rb
+    $ recheck recheck/model/user_check.rb
+    $ recheck recheck/model/user_check.rb:46
+
+When you have a lot of data and checks take more than a few minutes to run, Recheck will recommend changing strategies,
+for example to check all recent records but sample randomly from older data that's less likely to have new errors.
+The schedulers and strategies appropriate for millions of records and gigabytes of data are available in [Recheck Pro](https://recheck.dev/pro), along with a nice web interface.
+
+
+## Write Checks
+
+Group your checks by query, team, or purpose.
+Typically these go in a `recheck/` directory, but Recheck finds any file ending in `_check.rb` in case you prefer to organize differently.
+
+Here's a short example:
+
+    class UserContactCheck < Recheck::Check::V1
+      # Query for records to check:
+      def query
+        # Watching for Bug #556, which left some users without shipping/contact info
+        # if the user edited their profile while the daily sync job was running.
+        User.where(email: nil)
+          .left_outer_joins(:mailing_addresses, :phone_numbers)
+          .where(mailing_addresses: { id: nil })
+          .where(phone_numbers: { id: nil })
+          .distinct
+      end
+
+      # The simplest possible check would be to consider every queried record bad.
+      # This is standard when checking for particular, well-defined bugs.
+      def check_bad_data_exists(_)= false
+    end
+
+Here's a longer example, showing the 4 hooks available:
+
+    # recheck/models/user_logins.check.rb
+    class UserLoginsCheck < Recheck::Check::V1
+
+      # Hook 1: setup (optional)
+      # Runs once to prepare a shared resource for the checks to use:
+      def setup
+        @ldap = Net::LDAP.new({ host: "example.com", port: 389, auth: LDAP_CREDENTIALS })
+      end
+
+      # Hook 2: query* (required)
+      # Your query might be very simple, like checking all records.
+      # You can have multiple query methods; all records are run against all checks.
+      # You can return any Enumerable.
+      def query_all
+        User.all.include(:avatar).find_each
+      end
+
+      # Hook 3: check* (optional)
+      # Each check inspects a single record, the name must start with "check".
+      #
+      # While it would be nice to always be able to query out bad data,
+      # sometimes it's easier to express "bad" in code, or you have to
+      # integrate with other data sources.
+      #
+      # A check is a function that receives a single record and returns
+      # false or nil for a failing record; anything else is a pass.
+      def check_users_are_synced_to_ldap(user)
+        # ldap syncs every minute so pass very recently changed users:
+        return true if user.updated_at >= 1.minute.ago
+
+        count = @ldap.search({
+          base: "dc=example, dc=com",
+          filter: Net::LDAP::Filter.eq("mail", User.email),
+          return_result: false
+        }).size
+
+        # user appears in ldap exactly once, right?
+        return count == 1
+      end
+
+      # You can define many checks for your records:
+      def check_user_has_avatar_on_s3(user)
+        # ...
+      end
+
+      # Hook 4, notify (optional)
+      # Runs once for each failing check. Most often you'll file an issue in your
+      # bug tracker. See 'Production' below for more.
+      #
+      # TODO explain Reporter somewhere in here + fix next lines
+      # Whether or not you define a notify hook, a failing check is printed to
+      # stdout and (in Recheck Pro) recorded in the admin panel.
+      def notify(check:, record:)
+        BugTracker.file_ticket(
+          team: :security,
+          priority: :low,
+          subject: "#{name} checker #{check} failed",
+          body: "..."
+        )
+      end
+    end
+
+Some tips for writing checks:
+
+  * Check classes are cheap. Don't be shy about splitting up your checks by team or function.
+  * Generally you want checks to avoid side effects because you can't control
+    their scheduling, but if you can automatically fix up your data, go for it.
+    Recheck is a pragmatic tool for keeping your data healthy.
+  * It's healthy for `notify` messages to get quite long and detailed so the
+    recipient has a running start on the bad data.
+    It's great to link to a [runbook](https://www.pagerduty.com/resources/learn/what-is-a-runbook/)
+    if you have one, but it's even better to directly include that info.
+
+
+## Production
+
+Run `bundle exec recheck --notify` to use the `notify` methods to fire off alerts instead of printing to `stdout`.
+It's just Ruby, you can notify different teams however they most "enjoy" hearing about bad data.
+
+You should still send `stderr` to your log system because Recheck will print if your notifications throw exceptions.
+
+Recheck is free for personal and commercial use,
+but pretty much all non-trivial commercial systems would benefit by upgrading to [Recheck Pro](https://recheck.dev/pro).
+It comes with an admin panel to track issues over time, silence flaky or low-priority checks, and more:
+
+[admin screenshot TK]
+
+The admin panel handles running your checks continuously in the background.
+
+Recheck Pro also includes sophisticated strategies to catch issues ASAP while minimizing database load.
+For example, if you add the line `schedule Recheck::Pro::RecentlyUpdated`, it will:
+
+- every minute, run checks against records edited in the last hour
+- every hour, run checks against records edited in the last day
+- every day, run checks against records edited in the last 30 days
+- every day, run checks against 1% of records edited more than 30 days ago,
+  but back off and warn if the database is responding slowly
+
+See the [full docs](https://recheck.dev/doc) for more.
+
+
+## Contributing
+
+After checking out the repo, run `bin/setup` to install dependencies.
+Then, run `rake test` to run the tests.
+You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+
+To install this gem onto your local machine, run `bundle exec rake install`.
+Please don't bump the version number; I'll handle releases.
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/recheck/recheck-ruby
+
+
+## License
+
+Recheck is an open core product.
+See [LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/LICENSE.md) for terms of the freely available license.
+
+The license for Recheck Pro and Recheck Enterprise can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/COMM-LICENSE.md)
+and is available for purchase at [Recheck.dev](https://recheck.dev).

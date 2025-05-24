@@ -1,0 +1,99 @@
+<html>
+<head>
+  <title>Recheck</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="always" />
+  <style>
+    body {
+      font-size: 16px;
+      background-size: cover;
+      margin: 2em auto 0;
+      padding: 0;
+      background-color: #ded;
+      font-family: Trebuchet MS, sans;
+      max-width: 30em;
+      line-height: 1.5em;
+    }
+    hr {
+      border: 0;
+      height: 1px;
+      background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 1));
+    }
+    img.logo {
+      display: inline-block;
+      height: 4em;
+      margin: 2em auto;
+    }
+    @media only screen and (max-width: 480px) {
+      html {
+              -webkit-text-size-adjust: none;
+      }
+      body {
+        font-size: 18px;
+        max-width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <img class="logo" src="logo.png">
+
+  <p>
+  Recheck is a tool for checking production data is correct, inspired by an internal tool at Stripe.
+  You write small checks (similar to tests) to confirm things like:
+  a delayed job has finished with a record,
+  a null got replaced by a third-party API call,
+  a painful bug hasn't recurred,
+  a state machine has reached a completion stage,
+  or any other technical/business rule logic that is difficult to write a db constraint for.
+  Out of the box it can detect and use your model validations, but the real value is in writing your own checks.
+  </p>
+
+  <hr>
+
+  <p>
+  Recheck is created by Peter Bhat Harkins, a <a href="https://malaprop.org">developer</a> mostly known for being that guy who runs <a href="https://lobste.rs">Lobsters</a>.
+  In 2016 I gave a talk on <a href="https://push.cx/talks/kcdc2016">Rails Database Corruption</a> investigating the causes of the invalid data I kept finding at consulting clients.
+  (Spoiler: it's impossible to avoid.)
+  In 2018 I started working at Stripe on Atlas, then optimizing Dashboard Onboarding, then Indie Hackers.
+  I learned about a tool Stripe called "checkers" for finding this kind of data.
+  Recheck is an independent reimplementation of the idea (with permission!) soon to be available to anyone.
+  </p>
+
+  <p>
+  Feel free to email me: <a href="mailto:peter@recheck.coop">peter@recheck.coop</a>
+  </p>
+
+  <hr>
+
+  <p>
+    Want to hear when Recheck is available? Join the announcement list.
+    I'll email ~monthly and you can one-click unsubscribe at any time.
+  </p>
+
+  <form
+    action="https://buttondown.com/api/emails/embed-subscribe/recheck"
+    method="post"
+    target="popupwindow"
+    onsubmit="window.open('https://buttondown.com/recheck', 'popupwindow')"
+    class="embeddable-buttondown-form"
+    style="margin: 2em;"
+  >
+    <label for="bd-email">Enter your email</label>
+    <input type="email" name="email" id="bd-email" />
+
+    <input type="submit" value="Subscribe" />
+    <p style="font-size: 75%;">
+      <a href="https://buttondown.com/refer/recheck" target="_blank">Powered by Buttondown</a>
+    </p>
+  </form>
+
+
+  <p>
+  <a href="https://Recheck.coop">Recheck.coop</a> will be an Illinois Limited Worker Cooperative Association,
+  a business where employees always own all equity.
+  Happy to talk your ear off about it.
+  </p>
+
+</body>
+</html>

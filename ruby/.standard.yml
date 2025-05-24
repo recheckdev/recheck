@@ -1,0 +1,9 @@
+ignore:
+  # this fucks up refactorings
+  - '**/*':
+    - Lint/UselessAssignment
+  # ignore vendored code
+  - '**/vendor/**/*'
+
+plugins:
+  - standard-performance

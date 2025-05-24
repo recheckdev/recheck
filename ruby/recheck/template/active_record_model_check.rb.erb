@@ -1,0 +1,16 @@
+require_relative '../check_helper'
+
+class <%= class_name %>Check < Recheck::Check::V1
+  def query_all
+    <%= class_name %><%= pk_info.query_method %>
+  end
+
+  def check_valid(record)
+    record.valid?
+  end
+
+  # Write more-specific checks for your model here.
+  #
+  # Remember, if you can query() directly for bad data (like for a bug you are
+  # investigating or worry might recur), add another check.
+end
