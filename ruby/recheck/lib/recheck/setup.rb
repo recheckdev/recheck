@@ -1,13 +1,15 @@
 require "erb"
 
+require_relative "../../vendor/optimist"
+
 module Recheck
   class Setup
-    def initialize
+    def initialize(argv)
+      @argv = argv
+      @options = Optimist.options(@argv) do
+        banner "recheck setup: create a check suite"
+      end
       @files_created = []
-    end
-
-    def self.run
-      new.run
     end
 
     def run

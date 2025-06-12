@@ -67,7 +67,7 @@ module Recheck
           raise
         rescue => e
           yield "query", Error.new(check_class: self.class, check_method: query_method, record: nil, type: :exception, exception: e)
-          return
+          next
         end
       end
 

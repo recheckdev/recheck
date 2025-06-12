@@ -3,8 +3,8 @@ module Recheck
     class BaseReporter
       @subclasses = []
 
-      # Register subclasses for `recheck --list-reporters`.
-      # Reporters don't need to inherit from BaseReporter, just meet its API.
+      # Register subclasses for `recheck reporters`.
+      # Reporters don't need to inherit from BaseReporter, just meet its API
       class << self
         attr_reader :subclasses
 
@@ -29,7 +29,7 @@ module Recheck
         end
       end
 
-      # Implement to explain purpose or arg in --list-reporters.
+      # Optional: implement self.help to explain purpose or arg in 'recheck reporters'.
       def self.help
       end
 
