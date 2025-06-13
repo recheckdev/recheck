@@ -1,19 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "../vendor/optimist"
-require_relative "recheck/checker/v1"
-require_relative "recheck/cli"
-require_relative "recheck/command/reporters"
-require_relative "recheck/command/run"
-require_relative "recheck/command/setup"
-require_relative "recheck/count_stats"
-require_relative "recheck/reporter/base"
-require_relative "recheck/reporter/default"
-require_relative "recheck/reporter/json"
-require_relative "recheck/results"
-require_relative "recheck/version"
-require_relative "recheck/with_reporters"
-
 module Recheck
   # Check if an obj.is_a? Foo without having to depend on or load the foo gem.
   def self.unloaded_is_a? obj, class_name
@@ -22,3 +8,13 @@ module Recheck
     Object.const_defined?(class_name) && obj.is_a?(Object.const_get(class_name))
   end
 end
+
+require_relative "../vendor/optimist"
+require_relative "recheck/checker/v1"
+require_relative "recheck/cli"
+require_relative "recheck/commands"
+require_relative "recheck/count_stats"
+require_relative "recheck/reporters"
+require_relative "recheck/results"
+require_relative "recheck/version"
+require_relative "recheck/with_reporters"
