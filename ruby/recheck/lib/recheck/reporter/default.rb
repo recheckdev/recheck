@@ -2,7 +2,7 @@ module Recheck
   module Reporter
     class Default < Base
       def self.help
-        "Default reporter that prints incremental progress to stdout. No options."
+        "Used when no --reporter is named. Prints incremental progress to stdout. No options."
       end
 
       def initialize(arg:)

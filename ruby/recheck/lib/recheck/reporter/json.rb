@@ -2,17 +2,12 @@ module Recheck
   module Reporter
     class Json < Base
       def self.help
-        "JSON reporter that outputs results to a file or stdout. Takes json argument for filename; defaults to stdout: {\"filename\": \"path/to/output.json\"}"
+        "Outputs JSON-formatted results to a file or stdout. Arg is filename or blank for stdout."
       end
 
       def initialize(arg:)
+        @filename = arg
         @results = {}
-
-        options = arg ? JSON.parse(arg) : {}
-        @filename = options["filename"]
-        raise ArgumentError, "JsonReporter only accepts 'filename' as an argument" if options.keys.any? { |k| k != "filename" }
-      rescue JSON::ParserError => e
-        raise ArgumentError, "Invalid json: #{e.message}"
       end
 
       def around_check_class_run(check_class:, check_methods: [])
