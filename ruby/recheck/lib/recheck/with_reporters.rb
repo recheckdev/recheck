@@ -1,4 +1,4 @@
-# Decorates a Checker::V1 to call reporters.
+# Decorates a Checker to call reporters.
 module Recheck
   class WithReporters
     def initialize(checker_class:, reporters: [])

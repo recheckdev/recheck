@@ -1,6 +1,6 @@
 module Recheck
   module Checker
-    class V1
+    class Base
       PASSTHROUGH_EXCEPTIONS = [NoMemoryError, SignalException, SystemExit]
 
       class << self

@@ -100,7 +100,7 @@ module Recheck
           end
           exit Cli::EXIT_CODE[:run_errors]
         end
-        Recheck::Checker::V1.checker_classes
+        Recheck::Checker::Base.checker_classes
       end
 
       def check_missing_files

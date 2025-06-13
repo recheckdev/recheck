@@ -116,13 +116,13 @@ The schedulers and strategies appropriate for millions of records and gigabytes 
 
 A `Checker` is a class that groups queries and related checks, a `check` is an individual method that checks a single record.
 Group your checks by query, team, or purpose.
-The runner only looks for methods named `query` and `check_`, so you can use delegation, modules, and inheritance (as long as inheritance eventually reaches `Recheck::Checker::V1`) as you like to organize your checks.
+The runner only looks for methods named `query` and `check_`, so you can use delegation, modules, and inheritance (as long as inheritance eventually reaches `Recheck::Checker::Base`) as you like to organize your checks.
 
 
 Here's a short example:
 
 ```ruby
-class UserContactChecker < Recheck::Checker::V1
+class UserContactChecker < Recheck::Checker::Base
   # Query for records to check:
   def query
     # Watching for Bug #556, which left some users without shipping/contact info
@@ -144,8 +144,8 @@ Here's a longer example, showing the 4 hooks available:
 
 ```ruby
 # recheck/models/user_logins_checker.rb
-# Checkers must inherit from Recheck::Checker::V1 to be registered to run.
-class UserLoginsChecker < Recheck::Checker::V1
+# Checkers must inherit from Recheck::Checker::Base to be registered to run.
+class UserLoginsChecker < Recheck::Checker::Base
 
   # Hook 1: initialize (optional)
   # Runs once to prepare a shared resource for the checks to use:

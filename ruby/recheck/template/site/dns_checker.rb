@@ -1,6 +1,6 @@
 require "resolv"
 
-class EmailRecordsChecker < Recheck::Checker::V1
+class EmailRecordsChecker < Recheck::Checker::Base
   def query
     # domains you send email from
     []

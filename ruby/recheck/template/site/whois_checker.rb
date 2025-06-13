@@ -1,7 +1,7 @@
 require "whois"
 require "whois-parser"
 
-class WhoisChecker < Recheck::Checker::V1
+class WhoisChecker < Recheck::Checker::Base
   def query
     whois = Whois::Client.new
     # array of your domains

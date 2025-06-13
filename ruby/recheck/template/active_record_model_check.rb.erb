@@ -1,6 +1,6 @@
 require_relative '../recheck_helper'
 
-class <%= class_name %>Checker < Recheck::Checker::V1
+class <%= class_name %>Checker < Recheck::Checker::Base
   def query_all
     <%= class_name %><%= pk_info.query_method %>
   end

@@ -2,7 +2,7 @@ require "openssl"
 require "socket"
 require "uri"
 
-class TlsChecker < Recheck::Checker::V1
+class TlsChecker < Recheck::Checker::Base
   def query
     # array of domains you host web servers on
     [].map do |domain|

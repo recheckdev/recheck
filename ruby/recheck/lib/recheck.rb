@@ -10,7 +10,7 @@ module Recheck
 end
 
 require_relative "../vendor/optimist"
-require_relative "recheck/checker/v1"
+require_relative "recheck/checkers"
 require_relative "recheck/cli"
 require_relative "recheck/commands"
 require_relative "recheck/count_stats"
