@@ -116,7 +116,7 @@ The schedulers and strategies appropriate for millions of records and gigabytes 
 
 A `Checker` is a class that groups queries and related checks, a `check` is an individual method that checks a single record.
 Group your checks by query, team, or purpose.
-The runner only looks for methods named `query` and `check_`, so you can use modules, inheritance, and delegation as you like to organize your checks.
+The runner only looks for methods named `query` and `check_`, so you can use delegation, modules, and inheritance (as long as inheritance eventually reaches `Recheck::Checker::V1`) as you like to organize your checks.
 
 
 Here's a short example:
@@ -144,6 +144,7 @@ Here's a longer example, showing the 4 hooks available:
 
 ```ruby
 # recheck/models/user_logins_checker.rb
+# Checkers must inherit from Recheck::Checker::V1 to be registered to run.
 class UserLoginsChecker < Recheck::Checker::V1
 
   # Hook 1: initialize (optional)
@@ -224,8 +225,9 @@ When you `recheck run`, you can explicitly give the full namespace to a class li
 Reporters are even easier to write than checker classes:
 
 ```ruby
-# recheck/reporter/simple_email_reporter.rb
-class SimpleEmailReporter
+# recheck/reporter/email_team_reporter.rb
+# Checkers must inherit from Recheck::Reporter::Base to be registered as available.
+class EmailTeamReporter < Recheck::Reporter::Base
   # Optional: appears in `recheck reporters`.
   def self.help
   end
@@ -275,7 +277,7 @@ end
 
 To pass the API key as the reporter's arg:
 
-    bundle exec recheck --reporter SimpleEmailReporter:api_key_123abc
+    bundle exec recheck --reporter EmailTeamReporter:api_key_123abc
 
 A reporter takes a single string `arg` after a `:`, which is deliberately simple to avoid the creeping horror of shell parsing.
 If you need to pass complex options, TKTK.

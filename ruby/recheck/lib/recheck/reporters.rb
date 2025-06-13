@@ -4,7 +4,6 @@ module Recheck
       @subclasses = []
 
       # Register subclasses for `recheck reporters`.
-      # Reporters don't need to inherit from BaseReporter, just meet its API
       class << self
         attr_reader :subclasses
 

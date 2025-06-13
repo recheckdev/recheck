@@ -7,17 +7,19 @@ module Recheck
   module Command
     class Reporters
       def initialize(argv)
-        Optimist.options(argv) do
+        @options = Optimist.options(argv) do
           banner "recheck list_reporters: load and list reporters"
+          opt :location, "Show source location", short: :l, type: :boolean, default: false
         end
       end
 
       def run
-        puts "Available reporters (add yours to recheck/reporter/):"
+        puts "Available reporters (add yours to recheck/reporter/):\n"
         Recheck::Reporter::Base.subclasses.each do |reporter_class|
           help = reporter_class.respond_to?(:help) ? reporter_class.help : nil
           help ||= "No help avalable"
-          puts "  #{reporter_class.name}   #{help}"
+          puts "#{reporter_class.name}   #{help}"
+          puts "  #{Object.const_source_location(reporter_class.to_s).join(":")}" if @options[:location]
         end
       end
     end # Reporters
