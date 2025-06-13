@@ -4,13 +4,13 @@ module Recheck
       no_errors: 0,  # all checks passed
       any_errors: 1, # any check returns fail or threw an exception
       run_errors: 2  # recheck itself encountered an error
-    }
+    }.freeze
 
     COMMANDS = {
       reporters: "List available reporters",
       run: "Run checks",
       setup: "Set up a new check suite in the current directory"
-    }
+    }.freeze
 
     def initialize(argv)
       @argv = argv
