@@ -33,23 +33,22 @@ module Recheck
 
       # A recheck run flows like this, with indicated calls to each reporter.
       #
-      # -> around_run yields to run all checks, returning the totals:
-      # for each Checker class:
-      #   -> around_checker yields to run each check class:
+      # around_run -> for each Checker class:
+      #   around_checker ->
       #     run each query() method
       #     for each 'check_' method on the checker:
       #       for each record queried:
-      #         -> around_check yields to run check(record), returning the result
+      #         around_check -> check(record)
 
-      def around_run(check_classes: [])
+      def around_run(checkers: [])
         total_count = yield
       end
 
-      def around_checker(checker:, checks: [])
+      def around_checker(checker:, queries: [], checks: [])
         counts = yield
       end
 
-      def around_check(checker:, check:)
+      def around_check(checker:, check:, record:)
         result = yield
       end
     end # Base

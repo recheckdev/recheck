@@ -31,9 +31,6 @@ module Recheck
         public_instance_methods(false).select { |m| m.to_s.start_with?("check") }
       end
 
-      def initialize
-      end
-
       def run
         success = Success.new
 

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 module Recheck
-  # All happy families are alike; each unhappy family is unhappy in its own way.
+  # This doesn't track all the fields because Recheck is about finding errors and failures.
+  # If you need more data, please tell me about your use case?
   Success = Data.define do
     def type
       :pass
