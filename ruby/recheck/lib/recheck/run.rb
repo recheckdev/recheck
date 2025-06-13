@@ -14,7 +14,7 @@ module Recheck
       @argv = argv
       @options = Optimist.options(@argv) do
         banner "recheck run: run the suite"
-        opt :reporter, "<reporter>[:ARGS], can use multiple times", short: :r, multi: true, default: ["DefaultReporter"]
+        opt :reporter, "<reporter>[:ARGS], can use multiple times", short: :r, multi: true, default: ["Recheck::Reporter::Default"]
       end
       @files_created = []
 
@@ -94,7 +94,7 @@ module Recheck
 
     def load_reporters(reporters)
       reporters.each { |option|
-        class_name, arg = option.split(":", 2)
+        class_name, arg = option.split(/(?<!:):(?!:)/, 2)
         resolve_reporter_class(class_name).new(arg:)
       }
     rescue ArgumentError => e

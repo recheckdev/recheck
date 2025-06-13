@@ -1,6 +1,6 @@
 module Recheck
   module Reporter
-    class BaseReporter
+    class Base
       @subclasses = []
 
       # Register subclasses for `recheck reporters`.

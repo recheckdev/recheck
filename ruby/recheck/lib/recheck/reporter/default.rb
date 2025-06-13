@@ -1,6 +1,6 @@
 module Recheck
   module Reporter
-    class DefaultReporter < BaseReporter
+    class Default < Base
       def self.help
         "Default reporter that prints incremental progress to stdout. No options."
       end

@@ -207,13 +207,18 @@ Some tips for writing checks:
 
 ## Reporters
 
-When you run your check suite you can name Reporters to see your results in different formats or notify other systems:
+Reporters are how you turn failing checks into emails, bug tracker tickets, or any other useful notification or report.
+It's just Ruby, you can notify different teams however they most "enjoy" hearing about bad data.
 
-    recheck run --reporter JsonReporter
-    # TKTK sample output from JsonReporter
+When you run your check suite you can name the reporters to use:
+
+    recheck run --reporter Json
+    # TKTK sample output from Json
 
 Notice this doesn't show the usual terminal output?
-That's printed by `DefaultReporter`, which recheck only includes if you don't name any reporters in your command.
+That's printed by `Recheck::Reporter::Default`, which recheck only includes if you don't name any reporters in your command.
+
+When you `recheck run`, you can explicitly give the full namespace to a class like `--reporter Recheck::Reporter::Json` but it falls back to search in `Recheck::Reporter` for the convenience of saying `--reporter Json`.
 
 Reporters are even easier to write than check classes, with one important warning:
 
@@ -225,8 +230,11 @@ class SimpleEmailReporter
   end
 
   # Required: receives the arg from the command line
+  # raise ArgumentError for any problem with arg
   def initialize(arg:)
     @team_lookup = TeamLookupService.new(api_key: arg)
+  rescue InvalidApiKey
+    raise ArgumentError, "API key not accepted for team lookup"
   end
 
   # There are three hooks, all optional:
@@ -265,8 +273,12 @@ class SimpleEmailReporter
 end
 ```
 
-Reporters are how you turn failing checks into emails, bug tracker tickets, or any other useful notification or report.
-It's just Ruby, you can notify different teams however they most "enjoy" hearing about bad data.
+To pass the API key as the reporter's arg:
+
+    bundle exec recheck --reporter SimpleEmailReporter:api_key_123abc
+
+A reporter takes a single string `arg` after a `:`, which is deliberately simple to avoid the creeping horror of shell parsing.
+If you need to pass complex options, TKTK.
 
 Read [the reporters that ship with Recheck](https://github.com/recheckdev/recheck/ruby/lib/reporters) for more ideas.
 

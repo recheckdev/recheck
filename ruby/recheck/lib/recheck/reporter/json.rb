@@ -1,6 +1,6 @@
 module Recheck
   module Reporter
-    class JsonReporter < BaseReporter
+    class Json < Base
       def self.help
         "JSON reporter that outputs results to a file or stdout. Takes json argument for filename; defaults to stdout: {\"filename\": \"path/to/output.json\"}"
       end
