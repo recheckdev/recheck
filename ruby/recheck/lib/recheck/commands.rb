@@ -19,7 +19,7 @@ module Recheck
           help = reporter_class.respond_to?(:help) ? reporter_class.help : nil
           help ||= "No help avalable"
           puts "#{reporter_class.name}   #{help}"
-          puts "  #{Object.const_source_location(reporter_class.to_s).join(":")}" if @options[:location]
+          puts %(  #{Object.const_source_location(reporter_class.to_s).join(":")}) if @options[:location]
         end
       end
     end # Reporters
@@ -42,39 +42,18 @@ module Recheck
       end
 
       def run
-        run_checks
-      end
-
-      def run_checks
         checkers = load_checkers
-        if checkers.empty?
-          error = "No checks detected." +
-            (@file_patterns.empty? ? " Did you run `bundle exec recheck setup`?" : "")
-          warn error
-          exit Cli::EXIT_CODE[:run_errors]
-        end
-
         reporters = load_reporters(@options[:reporter])
-        total_counts = CountStats.new
-        begin
-          reporters.each do |reporter|
-            reporter.around_run(checkers: checkers) do
-              checkers.each do |checker_class|
-                checker_counts = WithReporters.new(checker_class:, reporters:).run
-                total_counts << checker_counts
-              end
-              total_counts
-            end
-          end
-        rescue Interrupt
-          puts "\nOperation interrupted by user."
-        rescue => e
-          puts "\nAn unexpected error occurred:"
-          puts e.full_message(highlight: false)
-          exit Cli::EXIT_CODE[:run_error]
-        ensure
-          exit Cli::EXIT_CODE[total_counts.all_pass? ? :no_errors : :any_errors]
-        end
+
+        total_counts = Runner.new(checkers:, reporters:).run
+      rescue Interrupt
+        puts "\nOperation interrupted by user."
+      rescue => e
+        puts "\nAn unexpected error occurred:"
+        puts e.full_message(highlight: false)
+        exit Cli::EXIT_CODE[:run_error]
+      ensure
+        exit Cli::EXIT_CODE[total_counts&.all_pass? ? :no_errors : :any_errors]
       end
 
       def load_checkers
@@ -90,7 +69,7 @@ module Recheck
             end
           end
         end
-        # no .sort, respect user's given order
+
         files.each do |file|
           require File.expand_path(file)
         rescue => e
@@ -100,6 +79,14 @@ module Recheck
           end
           exit Cli::EXIT_CODE[:run_errors]
         end
+
+        if Recheck::Checker::Base.checker_classes.empty?
+          error = "No checks detected." +
+            (@file_patterns.empty? ? " Did you run `bundle exec recheck setup`?" : "")
+          warn error
+          exit Cli::EXIT_CODE[:run_errors]
+        end
+
         Recheck::Checker::Base.checker_classes
       end
 

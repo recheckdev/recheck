@@ -280,7 +280,33 @@ To pass the API key as the reporter's arg:
     bundle exec recheck --reporter EmailTeamReporter:api_key_123abc
 
 A reporter takes a single string `arg` after a `:`, which is deliberately simple to avoid the creeping horror of shell parsing.
-If you need to pass complex options, TKTK.
+
+If you need to pass complex options or run from a job, you can script it:
+
+```ruby
+require "recheck"
+
+# load reporters and checkers from this project and elsewhere
+Dir.glob([
+  "recheck/check/**/*.rb",
+  "/path/to/shared/checks/**/*.rb",
+  "recheck/reporter/**/*.rb"
+]).each do |file|
+  require_relative file
+end
+
+# you can instantiate your checkers and reporters with additional config
+Recheck::Runner.new(
+  checkers: [
+    UserChecker.new(role: :admin),
+    UserChecker.new(role: :customer_suport),
+    SecurityChecker.new
+  ],
+  reporters: [
+    SlackReporter.new(channels: [:security, :ops].merge(ARGV.map(&:to_sym))
+  ]
+)
+```
 
 Read [the reporters that ship with Recheck](https://github.com/recheckdev/recheck/ruby/lib/reporters) for more ideas.
 
