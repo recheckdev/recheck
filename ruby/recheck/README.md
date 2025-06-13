@@ -50,7 +50,7 @@ Generate basic checks based on your existing models with:
 
     $ bundle exec recheck --setup
     creating recheck/
-    generating recheck/check_helper.rb
+    generating recheck/recheck_helper.rb
     creating recheck/site/domain_check.rb
     creating recheck/site/tls_check.rb
     detected ActiveRecord models, creating recheck/model/

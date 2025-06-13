@@ -12,7 +12,7 @@ module Recheck
       end
 
       def run
-        create_check_helper
+        create_helper
         create_reporter_dir
         create_site_checks
         setup_model_checks
@@ -43,8 +43,8 @@ module Recheck
 
       private
 
-      def create_check_helper
-        copy_template("#{template_dir}/check_helper.rb", "recheck/check_helper.rb")
+      def create_helper
+        copy_template("#{template_dir}/recheck_helper.rb", "recheck/recheck_helper.rb")
       end
 
       def create_reporter_dir

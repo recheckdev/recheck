@@ -14,8 +14,6 @@ module Recheck
           help ||= "No help avalable"
           puts "  #{reporter_class.name}   #{help}"
         end
-        puts
-        puts "`recheck run --reporter` falls back to the `Recheck::Reporter` namespace so you can name `--reporter Json`"
       end
     end
   end
