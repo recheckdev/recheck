@@ -146,9 +146,9 @@ Here's a longer example, showing the 4 hooks available:
 # recheck/models/user_logins_checker.rb
 class UserLoginsChecker < Recheck::Checker::V1
 
-  # Hook 1: setup (optional)
+  # Hook 1: initialize (optional)
   # Runs once to prepare a shared resource for the checks to use:
-  def setup
+  def intitialize
     @ldap = Net::LDAP.new({ host: "example.com", port: 389, auth: LDAP_CREDENTIALS })
   end
 

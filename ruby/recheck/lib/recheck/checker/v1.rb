@@ -32,10 +32,6 @@ module Recheck
       end
 
       def initialize
-        setup
-      end
-
-      def setup
       end
 
       def run
