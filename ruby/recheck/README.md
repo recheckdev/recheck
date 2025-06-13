@@ -98,7 +98,7 @@ A failure looks like:
       1755
       2342
 
-By default `recheck` only prints to the command line, but should be configured to notify teams by email/issue tracker/chat message in regular use
+By default `recheck` only prints to the command line, but you can write `Reporter`s to notify teams by email/issue tracker/chat message in regular use
 (see example checks and the Production section below).
 
 You can run subsets of checks by filename or line number:
@@ -120,86 +120,78 @@ Typically these go in a `recheck/` directory, but Recheck finds any file ending 
 
 Here's a short example:
 
-    class UserContactCheck < Recheck::Check::V1
-      # Query for records to check:
-      def query
-        # Watching for Bug #556, which left some users without shipping/contact info
-        # if the user edited their profile while the daily sync job was running.
-        User.where(email: nil)
-          .left_outer_joins(:mailing_addresses, :phone_numbers)
-          .where(mailing_addresses: { id: nil })
-          .where(phone_numbers: { id: nil })
-          .distinct
-      end
+```ruby
+class UserContactCheck < Recheck::Check::V1
+  # Query for records to check:
+  def query
+    # Watching for Bug #556, which left some users without shipping/contact info
+    # if the user edited their profile while the daily sync job was running.
+    User.where(email: nil)
+      .left_outer_joins(:mailing_addresses, :phone_numbers)
+      .where(mailing_addresses: { id: nil })
+      .where(phone_numbers: { id: nil })
+      .distinct
+  end
 
-      # The simplest possible check would be to consider every queried record bad.
-      # This is standard when checking for particular, well-defined bugs.
-      def check_bad_data_exists(_)= false
-    end
+  # The simplest possible check would be to consider every queried record bad.
+  # This is standard when checking for particular, well-defined bugs.
+  def check_bad_data_exists(_)= false
+end
+```
 
 Here's a longer example, showing the 4 hooks available:
 
-    # recheck/models/user_logins.check.rb
-    class UserLoginsCheck < Recheck::Check::V1
+```ruby
+# recheck/models/user_logins.check.rb
+class UserLoginsCheck < Recheck::Check::V1
 
-      # Hook 1: setup (optional)
-      # Runs once to prepare a shared resource for the checks to use:
-      def setup
-        @ldap = Net::LDAP.new({ host: "example.com", port: 389, auth: LDAP_CREDENTIALS })
-      end
+  # Hook 1: setup (optional)
+  # Runs once to prepare a shared resource for the checks to use:
+  def setup
+    @ldap = Net::LDAP.new({ host: "example.com", port: 389, auth: LDAP_CREDENTIALS })
+  end
 
-      # Hook 2: query* (required)
-      # Your query might be very simple, like checking all records.
-      # You can have multiple query methods; all records are run against all checks.
-      # You can return any Enumerable.
-      def query_all
-        User.all.include(:avatar).find_each
-      end
+  # Hook 2: query* (required)
+  # Your query might be very simple, like checking all records.
+  # You can have multiple query methods; all records are run against all checks.
+  # You can return any Enumerable.
+  def query_all
+    User.all.include(:avatar).find_each
+  end
 
-      # Hook 3: check* (optional)
-      # Each check inspects a single record, the name must start with "check".
-      #
-      # While it would be nice to always be able to query out bad data,
-      # sometimes it's easier to express "bad" in code, or you have to
-      # integrate with other data sources.
-      #
-      # A check is a function that receives a single record and returns
-      # false or nil for a failing record; anything else is a pass.
-      def check_users_are_synced_to_ldap(user)
-        # ldap syncs every minute so pass very recently changed users:
-        return true if user.updated_at >= 1.minute.ago
+  # Hook 3: check* (optional)
+  # Each check inspects a single record, the name must start with "check".
+  #
+  # While it would be nice to always be able to query out bad data,
+  # sometimes it's easier to express "bad" in code, or you have to
+  # integrate with other data sources.
+  #
+  # A check is a function that receives a single record and returns
+  # false or nil for a failing record; anything else is a pass.
+  def check_users_are_synced_to_ldap(user)
+    # ldap syncs every minute so pass very recently changed users:
+    return true if user.updated_at >= 1.minute.ago
 
-        count = @ldap.search({
-          base: "dc=example, dc=com",
-          filter: Net::LDAP::Filter.eq("mail", User.email),
-          return_result: false
-        }).size
+    count = @ldap.search({
+      base: "dc=example, dc=com",
+      filter: Net::LDAP::Filter.eq("mail", User.email),
+      return_result: false
+    }).size
 
-        # user appears in ldap exactly once, right?
-        return count == 1
-      end
+    # user appears in ldap exactly once, right?
+    return count == 1
+  end
 
-      # You can define many checks for your records:
-      def check_user_has_avatar_on_s3(user)
-        # ...
-      end
+  # You can define many checks for your records:
+  def check_user_has_avatar_on_s3(user)
+    # ...
+  end
 
-      # Hook 4, notify (optional)
-      # Runs once for each failing check. Most often you'll file an issue in your
-      # bug tracker. See 'Production' below for more.
-      #
-      # TODO explain Reporter somewhere in here + fix next lines
-      # Whether or not you define a notify hook, a failing check is printed to
-      # stdout and (in Recheck Pro) recorded in the admin panel.
-      def notify(check:, record:)
-        BugTracker.file_ticket(
-          team: :security,
-          priority: :low,
-          subject: "#{name} checker #{check} failed",
-          body: "..."
-        )
-      end
-    end
+  # That's all you need to implement in your check class,
+  # but you can have any other methods or attributes you want.
+  # This is mostly useful for wiring up metadata for reporters:
+  def team= :security
+end
 
 Some tips for writing checks:
 
@@ -213,12 +205,80 @@ Some tips for writing checks:
     if you have one, but it's even better to directly include that info.
 
 
-## Production
+## Reporters
 
-Run `bundle exec recheck --notify` to use the `notify` methods to fire off alerts instead of printing to `stdout`.
+When you run your check suite you can name Reporters to see your results in different formats or notify other systems:
+
+    recheck run --reporter JsonReporter
+    # TKTK sample output from JsonReporter
+
+Notice this doesn't show the usual terminal output?
+That's printed by `DefaultReporter`, which recheck only includes if you don't name any reporters in your command.
+
+Reporters are even easier to write than check classes, with one important warning:
+
+```ruby
+# recheck/reporter/simple_email_reporter.rb
+class SimpleEmailReporter
+  # Optional: appears in `recheck reporters`
+  def self.help
+  end
+
+  # Required: receives the arg from the command line
+  def initialize(arg:)
+    @team_lookup = TeamLookupService.new(api_key: arg)
+  end
+
+  # There are three hooks, all optional:
+  # around_run: fires around the entire run
+  # around_check_class_run: fires around each check class
+  # around_query: fires around each query_ invocation
+  # around_check: fires for each call to a check_ of each record
+
+  # Important warning: all your hooks _must_ yield to run the next part of the sutie
+
+  def around_run(check_classes:)
+    total_counts = yield
+
+    Email.new({
+      to: @team_lookup.find(:ops),
+      subject: "check run completed",
+      body: "results: #{total_counts.inspect}"
+    }).send_now!
+  end
+
+  # This Reporter doesn't need a around_check_class_run or around_query,
+  # so it doesn't define them.
+
+  def around_check(check_class:, check_method:)
+    result = yield
+
+    if result.is_a? Recheck::Error
+      Email.new({
+        # remember defining .team in the check class above?
+        to: @team_lookup.find(check_class.team),
+        subject: "failing check",
+        body: result.inspect
+      }).send_now!
+    end
+  end
+end
+```
+
+Reporters are how you turn failing checks into emails, bug tracker tickets, or any other useful notification or report.
 It's just Ruby, you can notify different teams however they most "enjoy" hearing about bad data.
 
-You should still send `stderr` to your log system because Recheck will print if your notifications throw exceptions.
+Read [the reporters that ship with Recheck](https://github.com/recheckdev/recheck/ruby/lib/reporters) for more ideas.
+
+
+## Production
+
+When you have your check suite and reporters, it's time to run them in production.
+
+You could run `bundle exec recheck recheck/job/* recheck/model/ --reporter ... --reporter ...` manually,
+but recheck's real value comes when you schedule it to run automatically.
+Start with running all your checks daily and then specialize into running subsets more or less frequently as you gain confidence and build out a big suite.
+
 
 Recheck is free for personal and commercial use,
 but pretty much all non-trivial commercial systems would benefit by upgrading to [Recheck Pro](https://recheck.dev/pro).
@@ -247,7 +307,7 @@ Then, run `rake test` to run the tests.
 You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`.
-Please don't bump the version number; I'll handle releases.
+Please don't bump the version number in PRs; I'll handle releases.
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/recheck/recheck-ruby
 
@@ -257,5 +317,5 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/rechec
 Recheck is an open core product.
 See [LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/LICENSE.md) for terms of the freely available license.
 
-The license for Recheck Pro and Recheck Enterprise can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/COMM-LICENSE.md)
-and is available for purchase at [Recheck.dev](https://recheck.dev).
+The license for Recheck Pro can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/COMM-LICENSE.md).
+Purchase at [Recheck.dev](https://recheck.dev).

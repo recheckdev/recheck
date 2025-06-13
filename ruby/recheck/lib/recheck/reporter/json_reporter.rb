@@ -5,9 +5,8 @@ module Recheck
         "JSON reporter that outputs results to a file or stdout. Takes json argument for filename; defaults to stdout: {\"filename\": \"path/to/output.json\"}"
       end
 
-      def initialize(arg)
+      def initialize(arg:)
         @results = {}
-        @total_counts = CountStats.new
 
         options = arg ? JSON.parse(arg) : {}
         @filename = options["filename"]
@@ -16,10 +15,7 @@ module Recheck
         raise ArgumentError, "Invalid json: #{e.message}"
       end
 
-      def before_run
-      end
-
-      def before_check_class_run(check_class, check_methods)
+      def around_check_class_run(check_class:, check_methods: [])
         @results[check_class.to_s] = check_methods.to_h { |method|
           [method, {
             counts: CountStats.new,
@@ -27,29 +23,26 @@ module Recheck
             exception: []
           }]
         }
+        yield
       end
 
-      def check_result(check_class, check_method, result)
+      def around_check(check_class:, check_method:)
+        result = yield
+
         @results[check_class.to_s][check_method][:counts].increment(result.type)
         case result.type
         when :fail
-          @results[check_class.to_s][check_method][:fail] << result.check_class.fetch_record_id(result.record)
+          @results[check_class.to_s][check_method][:fail] << fetch_record_id(result.record)
         when :exception
           @results[check_class.to_s][check_method][:exception] << {
-            id: result.check_class.fetch_record_id(result.record),
+            id: fetch_record_id(result.record),
             message: result.exception.message,
             backtrace: result.exception.backtrace
           }
         when :blanket
           @results[check_class.to_s][check_method][:blanket] = true
         end
-      end
 
-      def after_check_class_run(check_class, class_counts)
-      end
-
-      def after_run(total_counts)
-        @total_counts = total_counts
         if @filename
           File.write(@filename, @results.to_json)
         else

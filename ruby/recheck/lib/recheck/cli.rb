@@ -11,7 +11,7 @@ module Recheck
     COMMANDS = {
       setup: "Set up a new check suite in the current directory",
       run: "Run checks",
-      list_reporters: "List available reporters"
+      reporters: "List available reporters"
     }
 
     def initialize(argv)

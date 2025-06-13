@@ -15,7 +15,6 @@ module Recheck
       @options = Optimist.options(@argv) do
         banner "recheck run: run the suite"
         opt :reporter, "<reporter>[:ARGS], can use multiple times", short: :r, multi: true, default: ["DefaultReporter"]
-        opt :notify, "Call .notify methods in checks", short: :n, type: :boolean
       end
       @files_created = []
 
@@ -26,7 +25,7 @@ module Recheck
       run_checks
     end
 
-    def run_checks(notify: false)
+    def run_checks
       checks = load_checks
       if checks.empty?
         error = "No checks detected." +
@@ -37,11 +36,15 @@ module Recheck
 
       reporters = load_reporters(@options[:reporter])
       total_counts = CountStats.new
-      reporters.each(&:before_run)
       begin
-        checks.each do |check_class|
-          check_counts = WithReporters.new(check_class, reporters: reporters).run(notify)
-          total_counts << check_counts
+        reporters.each do |reporter|
+          reporter.around_run(check_classes: checks) do
+            checks.each do |check_class|
+              check_counts = WithReporters.new(check_class, reporters: reporters).run
+              total_counts << check_counts
+            end
+            total_counts
+          end
         end
       rescue Interrupt
         puts "\nOperation interrupted by user."
@@ -50,7 +53,6 @@ module Recheck
         puts e.full_message(highlight: false)
         exit EXIT_CODE[:run_error]
       ensure
-        reporters.each { |r| r.after_run(total_counts) }
         exit EXIT_CODE[total_counts.all_pass? ? :no_errors : :any_errors]
       end
     end
@@ -93,7 +95,7 @@ module Recheck
     def load_reporters(reporters)
       reporters.each { |option|
         class_name, arg = option.split(":", 2)
-        resolve_reporter_class(class_name).new(arg)
+        resolve_reporter_class(class_name).new(arg:)
       }
     rescue ArgumentError => e
       puts "Bad argument to Reporter (#{e.backtrace.first}): #{e.message}"

@@ -22,8 +22,4 @@ class WhoisCheck < Recheck::Check::V1
   def check_nameservers(domain)
     parser.nameservers.length >= 2
   end
-
-  # def notify( check:, record:)
-  #   email or file a ticket with the team that manages registration
-  # end
 end

@@ -28,8 +28,4 @@ class EmailRecordsCheck < Recheck::Check::V1
     end
     txt_records.any? { |record| record.strings.first.start_with?("v=spf1") }
   end
-
-  # def notify( check:, record:)
-  #   email or file a ticket with the team that manages registration
-  # end
 end

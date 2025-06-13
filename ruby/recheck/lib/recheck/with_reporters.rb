@@ -6,26 +6,34 @@ module Recheck
       @reporters = reporters
     end
 
-    def run(notify)
+    def run
       check = @check_class.new
+
       class_counts = CountStats.new
-      @reporters.each { |r| r.before_check_class_run(@check_class, @check_class.check_methods) }
 
-      check.run(notify) do |check_method, result|
-        class_counts.increment(result.type)
+      @reporters.each do |reporter|
+        reporter.around_check_class_run(check_class: @check_class, check_methods: @check_class.check_methods) do
+          check.run do |check_method, result|
+            @reporters.each do |r|
+              r.around_check(check_class: @check_class, check_method: check_method) { result }
+            end
 
-        @reporters.each { |r| r.check_result(@check_class, check_method, result) }
+            class_counts.increment(result.type)
 
-        # if the first 20 error out, skip the check, it's probably buggy
-        if class_counts.reached_blanket_failure?
-          blanket = Error.new(check_class: check.class, check_method: check_method, record: nil, type: :blanket, exception: nil)
-          check.notify(blanket)
-          @reporters.each { |r| r.check_result(@check_class, check_method, blanket) }
-          break
+            # if the first 20 error out, skip the check, it's probably buggy
+            if class_counts.reached_blanket_failure?
+              blanket = Error.new(check_class: check.class, check_method: check_method, record: nil, type: :blanket, exception: nil)
+              @reporters.each do |r|
+                r.around_check(check_class: @check_class, check_method: check_method) { blanket }
+              end
+              break
+            end
+          end
+
+          class_counts
         end
       end
 
-      @reporters.each { |r| r.after_check_class_run(@check_class, class_counts) }
       class_counts
     end
   end

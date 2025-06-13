@@ -14,7 +14,10 @@ module Recheck
         end
       end
 
-      def initialize(arg)
+      def self.help
+      end
+
+      def initialize(arg:)
       end
 
       def fetch_record_id(record)
@@ -29,36 +32,26 @@ module Recheck
         end
       end
 
-      # Optional: implement self.help to explain purpose or arg in 'recheck reporters'.
-      def self.help
-      end
-
       # A recheck run flows like this, with indicated calls to each reporter.
       #
-      # -> before_run
+      # -> around_run yields to run all checks, returning the totals:
       # for each Check class:
-      #   -> before_check_class_run
+      #   -> around_check_class_run yields to run each check class:
       #   run query() to collect records
       #   for each 'check_' method on the class:
       #     for each record:
-      #       check(record)
-      #       -> check_result
-      #   -> after_check_class_run
-      # -> after_run
+      #       -> around_check yields to run check(record), returning the result
 
-      def before_run
+      def around_run(check_classes: [])
+        total_count = yield
       end
 
-      def before_check_class_run(check_class, check_methods)
+      def around_check_class_run(check_class:, check_methods: [])
+        class_counts = yield
       end
 
-      def check_result(check_class, check_method, result)
-      end
-
-      def after_check_class_run(check_class, class_counts)
-      end
-
-      def after_run(total_counts)
+      def around_check(check_class:, check_method:)
+        result = yield
       end
     end
   end

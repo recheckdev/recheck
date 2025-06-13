@@ -5,43 +5,46 @@ module Recheck
         "Default reporter that prints incremental progress to stdout. No options."
       end
 
-      def initialize(arg)
+      def initialize(arg:)
         raise ArgumentError, "does not take options" unless arg.nil?
         @current_counts = CountStats.new
         @errors = []
       end
 
-      def before_run
-      end
+      def around_run(check_classes: [])
+        total_counts = yield
 
-      def after_run(total_counts)
         if total_counts.all_zero?
           puts "No records returned by query methods"
         else
           puts "Total: #{total_counts.pass} pass, #{total_counts.fail} fail, #{total_counts.exception} exception"
         end
+
+        total_counts
       end
 
-      def before_check_class_run(check_class, _check_methods)
+      def around_check_class_run(check_class:, check_methods: [])
         @errors = []
         print "#{check_class} "
+
+        class_counts = yield
+
+        # don't double-print last progress indicator
+        print_progress unless @current_counts.total % 1000 == 0
+        print_check_summary(class_counts)
+        print_errors
+
+        class_counts
       end
 
-      def check_result(check_class, check_method, result)
+      def around_check(check_class:, check_method:)
+        result = yield
+
         @current_counts.increment(result.type) unless result.type == :blanket
         print_progress if @current_counts.total % 1000 == 0
 
         @errors << result if result.is_a? Error
       end
-
-      def after_check_class_run(check_class, class_counts)
-        # don't double-print last progress indicator
-        print_progress unless @current_counts.total % 1000 == 0
-        print_check_summary(class_counts)
-        print_errors
-      end
-
-      private
 
       def print_check_summary(counts)
         puts " #{counts.pass} pass, #{counts.fail} fail, #{counts.exception} exception"

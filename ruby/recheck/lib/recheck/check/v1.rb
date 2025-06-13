@@ -38,7 +38,7 @@ module Recheck
       def setup
       end
 
-      def run(notify)
+      def run
         success = Success.new
 
         # for each query_...
@@ -52,14 +52,12 @@ module Recheck
                 yield check_method, success
               else
                 error = Error.new(check_class: self.class, check_method: check_method, record: record, type: :fail, exception: nil)
-                self.notify(error) if notify
                 yield check_method, error
               end
             rescue *PASSTHROUGH_EXCEPTIONS
               raise
             rescue => e
               error = Error.new(check_class: self.class, check_method: check_method, record: record, type: :exception, exception: e)
-              self.notify(error) if notify
               yield check_method, error
             end
           end
@@ -69,9 +67,6 @@ module Recheck
           yield "query", Error.new(check_class: self.class, check_method: query_method, record: nil, type: :exception, exception: e)
           next
         end
-      end
-
-      def notify(error)
       end
     end
   end
