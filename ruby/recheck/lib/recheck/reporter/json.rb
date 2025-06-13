@@ -10,8 +10,8 @@ module Recheck
         @results = {}
       end
 
-      def around_check_class_run(check_class:, check_methods: [])
-        @results[check_class.to_s] = check_methods.to_h { |method|
+      def around_checker(checker:, checks: [])
+        @results[checker.to_s] = checks.to_h { |method|
           [method, {
             counts: CountStats.new,
             fail: [],
@@ -21,21 +21,21 @@ module Recheck
         yield
       end
 
-      def around_check(check_class:, check_method:)
+      def around_check(checker:, checks:)
         result = yield
 
-        @results[check_class.to_s][check_method][:counts].increment(result.type)
+        @results[checker.class.to_s][check][:counts].increment(result.type)
         case result.type
         when :fail
-          @results[check_class.to_s][check_method][:fail] << fetch_record_id(result.record)
+          @results[checker.class.to_s][check][:fail] << fetch_record_id(result.record)
         when :exception
-          @results[check_class.to_s][check_method][:exception] << {
+          @results[checker.class.to_s][check][:exception] << {
             id: fetch_record_id(result.record),
             message: result.exception.message,
             backtrace: result.exception.backtrace
           }
         when :blanket
-          @results[check_class.to_s][check_method][:blanket] = true
+          @results[checker.class.to_s][check][:blanket] = true
         end
 
         if @filename

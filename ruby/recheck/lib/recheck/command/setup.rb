@@ -19,7 +19,7 @@ module Recheck
         run_linter
 
         puts
-        puts "Run `git add --all` and `git commit` to checkpoint this setup, then `bundle exec recheck` to check for the first time."
+        puts "Run `git add --all` and `git commit` to checkpoint this setup, then `bundle exec recheck run` to check for the first time."
       end
 
       def run_linter
@@ -58,8 +58,8 @@ module Recheck
       end
 
       ModelFile = Data.define(:path, :class_name, :readonly, :pk_info) do
-        def check_path
-          "recheck/model/#{underscore(class_name.gsub("::", "/"))}_check.rb"
+        def checker_path
+          "recheck/model/#{underscore(class_name.gsub("::", "/"))}_checker.rb"
         end
 
         def underscore(string)
@@ -79,10 +79,10 @@ module Recheck
           elsif mf.pk_info.nil?
             puts "  #{mf.path} -> Skipped (model without primary key, unable to report on it)"
           else
-            FileUtils.mkdir_p(File.dirname(mf.check_path))
-            File.write(mf.check_path, model_check_content(mf.class_name, mf.pk_info))
-            @files_created << mf.check_path
-            puts "  #{mf.path} -> #{mf.check_path}"
+            FileUtils.mkdir_p(File.dirname(mf.checker_path))
+            File.write(mf.checker_path, model_check_content(mf.class_name, mf.pk_info))
+            @files_created << mf.checker_path
+            puts "  #{mf.path} -> #{mf.checker_path}"
           end
         end
       end

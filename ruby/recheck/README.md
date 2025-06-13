@@ -48,19 +48,19 @@ Recheck runs against production data, so don't put it only in a `development` or
 
 Generate basic checks based on your existing models with:
 
-    $ bundle exec recheck --setup
+    $ bundle exec recheck setup
     creating recheck/
     generating recheck/recheck_helper.rb
-    creating recheck/site/domain_check.rb
-    creating recheck/site/tls_check.rb
+    creating recheck/site/domain_checker.rb
+    creating recheck/site/tls_checker.rb
     detected ActiveRecord models, creating recheck/model/
-      app/models/comment.rb -> recheck/model/comment_check.rb
-      app/models/story.rb -> recheck/model/story_check.rb
-      app/models/user.rb -> recheck/model/user_check.rb
+      app/models/comment.rb -> recheck/model/comment_checker.rb
+      app/models/story.rb -> recheck/model/story_checker.rb
+      app/models/user.rb -> recheck/model/user_checker.rb
     detected ActiveJob jobs, creating recheck/job/
-      app/jobs/user_cleanup_job.rb -> recheck/job/user_cleanup_check.rb
+      app/jobs/user_cleanup_job.rb -> recheck/job/user_cleanup_checker.rb
     detected Sidekiq workers, creating recheck/worker/
-      app/workers/refresh.rb -> recheck/worker/refresh_check.rb
+      app/workers/refresh.rb -> recheck/worker/refresh_checker.rb
 
 Run `git add --all` and `git commit` to record this baseline.
 
@@ -76,9 +76,9 @@ If you're large enough to have an OLAP/data warehouse, consult with your data te
 Run your checks:
 
     $ bundle exec recheck
-    CommentCheck ... 2,442 pass 0 fail
-    StoryCheck .. 1,196 pass 0 fail
-    UserCheck ..x. 3,501 pass 3 fail
+    CommentChecker ... 2,442 pass 0 fail
+    StoryChecker .. 1,196 pass 0 fail
+    UserChecker ..x. 3,501 pass 3 fail
     Completed in 28 seconds
 
 Each `.` is a set of 1,000 records passing, each `x` is a set with at least one failure.
@@ -88,25 +88,24 @@ The exit code is `0` when all checks pass,
 
 A failure looks like:
 
-    $ bundle exec recheck recheck/model/user.rb
-    UserCheck ...x. 3,501 pass, 3 fail
+    $ bundle exec recheck recheck/model/user_checker.rb
+    UserChecker ...x. 3,501 pass, 3 fail
 
     Failures:
-    UserLoginCheck#check_users_are_synced_to_ldap recheck/model/user_check.rb:46
+    UserLoginChecker#check_users_are_synced_to_ldap recheck/model/user_checker.rb:46
       2342
-    UserLoginCheck#Bug1422 recheck/model/user_check.rb:105
+    UserLoginChecker#Bug1422 recheck/model/user_checker.rb:105
       1755
       2342
 
-By default `recheck` only prints to the command line, but you can write `Reporter`s to notify teams by email/issue tracker/chat message in regular use
-(see example checks and the Production section below).
+By default `recheck` only prints to the command line, but you can write `Reporter`s to notify teams by email/slack/issue tracker in regular use.
 
 You can run subsets of checks by filename or line number:
 
     $ recheck recheck/job
-    $ recheck recheck/job/user* recheck/doc_store/integration.rb
-    $ recheck recheck/model/user_check.rb
-    $ recheck recheck/model/user_check.rb:46
+    $ recheck recheck/job/user* recheck/doc_store/integration_checker.rb
+    $ recheck recheck/model/user_checker.rb
+    $ recheck recheck/model/user_checker.rb:46
 
 When you have a lot of data and checks take more than a few minutes to run, Recheck will recommend changing strategies,
 for example to check all recent records but sample randomly from older data that's less likely to have new errors.
@@ -115,13 +114,15 @@ The schedulers and strategies appropriate for millions of records and gigabytes 
 
 ## Write Checks
 
+A `Checker` is a class that groups queries and related checks, a `check` is an individual method that checks a single record.
 Group your checks by query, team, or purpose.
-Typically these go in a `recheck/` directory, but Recheck finds any file ending in `_check.rb` in case you prefer to organize differently.
+The runner only looks for methods named `query` and `check_`, so you can use modules, inheritance, and delegation as you like to organize your checks.
+
 
 Here's a short example:
 
 ```ruby
-class UserContactCheck < Recheck::Check::V1
+class UserContactChecker < Recheck::Checker::V1
   # Query for records to check:
   def query
     # Watching for Bug #556, which left some users without shipping/contact info
@@ -134,7 +135,7 @@ class UserContactCheck < Recheck::Check::V1
   end
 
   # The simplest possible check would be to consider every queried record bad.
-  # This is standard when checking for particular, well-defined bugs.
+  # This is standard when you're checking for a particular, well-defined bug.
   def check_bad_data_exists(_)= false
 end
 ```
@@ -142,8 +143,8 @@ end
 Here's a longer example, showing the 4 hooks available:
 
 ```ruby
-# recheck/models/user_logins.check.rb
-class UserLoginsCheck < Recheck::Check::V1
+# recheck/models/user_logins_checker.rb
+class UserLoginsChecker < Recheck::Checker::V1
 
   # Hook 1: setup (optional)
   # Runs once to prepare a shared resource for the checks to use:
@@ -187,30 +188,30 @@ class UserLoginsCheck < Recheck::Check::V1
     # ...
   end
 
-  # That's all you need to implement in your check class,
-  # but you can have any other methods or attributes you want.
-  # This is mostly useful for wiring up metadata for reporters:
+  # That's all you need to implement a checker, but you can have any other
+  # methods or attributes you want. This is mostly useful for metadata for
+  # Reporters, so remember this method for the next section.
   def team= :security
 end
 
 Some tips for writing checks:
 
-  * Check classes are cheap. Don't be shy about splitting up your checks by team or function.
-  * Generally you want checks to avoid side effects because you can't control
-    their scheduling, but if you can automatically fix up your data, go for it.
+  * Checkers are cheap. Don't be shy about splitting up your checkers by team or function.
+    Recheck looks for any file `recheck/**/*_checker.rb` or you can give any path on the command line.
+  * Generally you want checks to avoid side effects because you can't control their scheduling,
+    but if you can automatically fix up your data, go for it.
     Recheck is a pragmatic tool for keeping your data healthy.
-  * It's healthy for `notify` messages to get quite long and detailed so the
-    recipient has a running start on the bad data.
-    It's great to link to a [runbook](https://www.pagerduty.com/resources/learn/what-is-a-runbook/)
-    if you have one, but it's even better to directly include that info.
+  * It's great to include detailed comments with links in your checkers so that when they alert
+    to give a running start on context for the people dealing with the alert.
+    Maybe a [runbook](https://www.pagerduty.com/resources/learn/what-is-a-runbook/)?
 
 
 ## Reporters
 
 Reporters are how you turn failing checks into emails, bug tracker tickets, or any other useful notification or report.
-It's just Ruby, you can notify different teams however they most "enjoy" hearing about bad data.
+You can notify different teams however they most "enjoy" hearing about bad data.
 
-When you run your check suite you can name the reporters to use:
+When you run your check suite you can name reporters to use:
 
     recheck run --reporter Json
     # TKTK sample output from Json
@@ -220,16 +221,16 @@ That's printed by `Recheck::Reporter::Default`, which recheck only includes if y
 
 When you `recheck run`, you can explicitly give the full namespace to a class like `--reporter Recheck::Reporter::Json` but it falls back to search in `Recheck::Reporter` for the convenience of saying `--reporter Json`.
 
-Reporters are even easier to write than check classes, with one important warning:
+Reporters are even easier to write than checker classes:
 
 ```ruby
 # recheck/reporter/simple_email_reporter.rb
 class SimpleEmailReporter
-  # Optional: appears in `recheck reporters`
+  # Optional: appears in `recheck reporters`.
   def self.help
   end
 
-  # Required: receives the arg from the command line
+  # Required: receives the arg from the command line.
   # raise ArgumentError for any problem with arg
   def initialize(arg:)
     @team_lookup = TeamLookupService.new(api_key: arg)
@@ -239,13 +240,12 @@ class SimpleEmailReporter
 
   # There are three hooks, all optional:
   # around_run: fires around the entire run
-  # around_check_class_run: fires around each check class
-  # around_query: fires around each query_ invocation
+  # around_checker: fires around each checker
   # around_check: fires for each call to a check_ of each record
 
-  # Important warning: all your hooks _must_ yield to run the next part of the sutie
+  # Important warning: all your hooks _must_ yield to run the next part of the suite.
 
-  def around_run(check_classes:)
+  def around_run(checkers:)
     total_counts = yield
 
     Email.new({
@@ -258,13 +258,13 @@ class SimpleEmailReporter
   # This Reporter doesn't need a around_check_class_run or around_query,
   # so it doesn't define them.
 
-  def around_check(check_class:, check_method:)
+  def around_check(checker:, checks:)
     result = yield
 
     if result.is_a? Recheck::Error
       Email.new({
-        # remember defining .team in the check class above?
-        to: @team_lookup.find(check_class.team),
+        # Remember defining .team in the checker example above?
+        to: @team_lookup.find(checker.team),
         subject: "failing check",
         body: result.inspect
       }).send_now!
@@ -287,8 +287,8 @@ Read [the reporters that ship with Recheck](https://github.com/recheckdev/rechec
 
 When you have your check suite and reporters, it's time to run them in production.
 
-You could run `bundle exec recheck recheck/job/* recheck/model/ --reporter ... --reporter ...` manually,
-but recheck's real value comes when you schedule it to run automatically.
+You could run `bundle exec recheck recheck/job/* recheck/model/user_checker.rb --reporter ... --reporter ...` and so on manually,
+but Recheck's real value comes when you schedule it to run automatically.
 Start with running all your checks daily and then specialize into running subsets more or less frequently as you gain confidence and build out a big suite.
 
 
@@ -298,7 +298,7 @@ It comes with an admin panel to track issues over time, silence flaky or low-pri
 
 [admin screenshot TK]
 
-The admin panel handles running your checks continuously in the background.
+The admin panel also handles running your checks continuously in the background.
 
 Recheck Pro also includes sophisticated strategies to catch issues ASAP while minimizing database load.
 For example, if you add the line `schedule Recheck::Pro::RecentlyUpdated`, it will:
@@ -314,6 +314,8 @@ See the [full docs](https://recheck.dev/doc) for more.
 
 ## Contributing
 
+Bug reports, feature requests, and pull requests are welcome on GitHub at: https://github.com/recheckdev/recheck
+
 After checking out the repo, run `bin/setup` to install dependencies.
 Then, run `rake test` to run the tests.
 You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -321,13 +323,11 @@ You can also run `bin/console` for an interactive prompt that will allow you to 
 To install this gem onto your local machine, run `bundle exec rake install`.
 Please don't bump the version number in PRs; I'll handle releases.
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/recheck/recheck-ruby
-
 
 ## License
 
 Recheck is an open core product.
-See [LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/LICENSE.md) for terms of the freely available license.
+See [LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/LICENSE.md) for terms of the freely available license.
 
-The license for Recheck Pro can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck-ruby/blob/main/COMM-LICENSE.md).
+The license for Recheck Pro can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/COMM-LICENSE.md).
 Purchase at [Recheck.dev](https://recheck.dev).

@@ -1,21 +1,21 @@
 module Recheck
-  module Check
+  module Checker
     class V1
       PASSTHROUGH_EXCEPTIONS = [NoMemoryError, SignalException, SystemExit]
 
       class << self
-        def check_classes
-          @@check_classes
+        def checker_classes
+          @@checker_classes ||= Set.new
+          @@checker_classes
         end
 
         def inherited(klass)
           register klass
         end
 
-        # Hook if you don't want to inherit from Recheck::Check
+        # Call if you don't want to inherit from Recheck::Checker
         def register klass
-          @@check_classes ||= Set.new
-          @@check_classes << klass
+          checker_classes << klass
         end
       end
 
@@ -51,20 +51,20 @@ module Recheck
               if result
                 yield check_method, success
               else
-                error = Error.new(check_class: self.class, check_method: check_method, record: record, type: :fail, exception: nil)
+                error = Error.new(checker_class: self.class, check: check, record: record, type: :fail, exception: nil)
                 yield check_method, error
               end
             rescue *PASSTHROUGH_EXCEPTIONS
               raise
             rescue => e
-              error = Error.new(check_class: self.class, check_method: check_method, record: record, type: :exception, exception: e)
+              error = Error.new(checker_class: self.class, check: check, record: record, type: :exception, exception: e)
               yield check_method, error
             end
           end
         rescue *PASSTHROUGH_EXCEPTIONS
           raise
         rescue => e
-          yield "query", Error.new(check_class: self.class, check_method: query_method, record: nil, type: :exception, exception: e)
+          yield "query", Error.new(checker_class: self.class, check: query_method, record: nil, type: :exception, exception: e)
           next
         end
       end

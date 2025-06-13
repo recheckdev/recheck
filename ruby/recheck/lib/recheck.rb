@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../vendor/optimist"
-require_relative "recheck/check/v1"
+require_relative "recheck/checker/v1"
 require_relative "recheck/cli"
 require_relative "recheck/command/reporters"
 require_relative "recheck/command/run"

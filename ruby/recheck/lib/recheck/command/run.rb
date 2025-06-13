@@ -17,7 +17,7 @@ module Recheck
         end
         @files_created = []
 
-        @file_patterns = @argv
+        @file_patterns = @options[:_leftovers]
       end
 
       def run
@@ -25,22 +25,22 @@ module Recheck
       end
 
       def run_checks
-        checks = load_checks
-        if checks.empty?
+        checkers = load_checkers
+        if checkers.empty?
           error = "No checks detected." +
-            (@file_patterns.empty? ? " Did you run `bundle exec recheck --setup`?" : "")
+            (@file_patterns.empty? ? " Did you run `bundle exec recheck setup`?" : "")
           warn error
-          exit EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:run_errors]
         end
 
         reporters = load_reporters(@options[:reporter])
         total_counts = CountStats.new
         begin
           reporters.each do |reporter|
-            reporter.around_run(check_classes: checks) do
-              checks.each do |check_class|
-                check_counts = WithReporters.new(check_class, reporters: reporters).run
-                total_counts << check_counts
+            reporter.around_run(checkers: checkers) do
+              checkers.each do |checker_class|
+                checker_counts = WithReporters.new(checker_class:, reporters:).run
+                total_counts << checker_counts
               end
               total_counts
             end
@@ -50,15 +50,15 @@ module Recheck
         rescue => e
           puts "\nAn unexpected error occurred:"
           puts e.full_message(highlight: false)
-          exit EXIT_CODE[:run_error]
+          exit Cli::EXIT_CODE[:run_error]
         ensure
-          exit EXIT_CODE[total_counts.all_pass? ? :no_errors : :any_errors]
+          exit Cli::EXIT_CODE[total_counts.all_pass? ? :no_errors : :any_errors]
         end
       end
 
-      def load_checks
+      def load_checkers
         files = if @file_patterns.empty?
-          Dir.glob("recheck/**/*_check.rb").sort
+          Dir.glob("recheck/**/*_checker.rb").sort
         else
           check_missing_files
           @file_patterns.flat_map do |pattern|
@@ -74,12 +74,12 @@ module Recheck
           require File.expand_path(file)
         rescue => e
           puts "Loading #{file} threw an exception: #{e.class}: #{e.message}, #{e.backtrace.first}"
-          unless file.start_with?("recheck")
-            puts "path doesn't start with \"recheck\", did you give the name of a model instead of its check?"
+          unless file.start_with?("recheck/")
+            puts "that filename doesn't start with \"recheck/\", did you give the name of a model instead of its checker?"
           end
-          exit EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:run_errors]
         end
-        Recheck::Check::V1.check_classes
+        Recheck::Checker::V1.checker_classes
       end
 
       def check_missing_files
@@ -87,7 +87,7 @@ module Recheck
         unless missing_files.empty?
           puts "Error: The following files do not exist:"
           missing_files.each { |file| puts file }
-          exit EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:run_errors]
         end
       end
 
@@ -98,7 +98,7 @@ module Recheck
         }
       rescue ArgumentError => e
         puts "Bad argument to Reporter (#{e.backtrace.first}): #{e.message}"
-        exit EXIT_CODE[:run_errors]
+        exit Cli::EXIT_CODE[:run_errors]
       end
 
       def resolve_reporter_class(reporter_name)
@@ -108,7 +108,7 @@ module Recheck
           next
         end
         puts "Error: Reporter class '#{reporter_name}' not found globally or in Recheck::Reporter."
-        exit EXIT_CODE[:run_errors]
+        exit Cli::EXIT_CODE[:run_errors]
       end
     end
   end

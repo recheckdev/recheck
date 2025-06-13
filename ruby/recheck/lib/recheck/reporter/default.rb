@@ -11,7 +11,7 @@ module Recheck
         @errors = []
       end
 
-      def around_run(check_classes: [])
+      def around_run(checkers: [])
         total_counts = yield
 
         if total_counts.all_zero?
@@ -23,21 +23,21 @@ module Recheck
         total_counts
       end
 
-      def around_check_class_run(check_class:, check_methods: [])
+      def around_checker(checker:, check: [])
         @errors = []
-        print "#{check_class} "
+        print "#{checker.class} "
 
-        class_counts = yield
+        counts = yield
 
         # don't double-print last progress indicator
         print_progress unless @current_counts.total % 1000 == 0
-        print_check_summary(class_counts)
+        print_check_summary(counts)
         print_errors
 
-        class_counts
+        counts
       end
 
-      def around_check(check_class:, check_method:)
+      def around_check(checker:, check:)
         result = yield
 
         @current_counts.increment(result.type) unless result.type == :blanket
@@ -52,20 +52,20 @@ module Recheck
 
       def print_errors
         failure_details = []
-        grouped_errors = @errors.group_by { |e| [e.check_class, e.check_method, e.type] }
+        grouped_errors = @errors.group_by { |e| [e.checker_class, e.check, e.type] }
 
-        grouped_errors.each do |(check_class, check_method), group_errors|
+        grouped_errors.each do |(checker_class, check), group_errors|
           case group_errors.first.type
           when :fail
             ids = group_errors.map { |e| fetch_record_id(e.record) }.join(", ")
-            failure_details << "  #{check_class}##{check_method} failed for records: #{ids}"
+            failure_details << "  #{checker_class}##{check} failed for records: #{ids}"
           when :exception
             error = group_errors.first
-            error_message = "  #{check_class}##{check_method} exception #{error.exception.message} for #{group_errors.size} records"
+            error_message = "  #{checker_class}##{check} exception #{error.exception.message} for #{group_errors.size} records"
             failure_details << error_message
             failure_details << error.record.full_message(highlight: false, order: :top) if error.record.respond_to?(:full_message)
           when :blanket
-            failure_details << "  #{check_class}: Skipping because the first 20 checks all failed. Either there's a lot of bad data or there's something wrong with the checks."
+            failure_details << "  #{checker_class}: Skipping because the first 20 checks all failed. Either there's a lot of bad data or there's something wrong with the checks."
           end
         end
         puts failure_details
