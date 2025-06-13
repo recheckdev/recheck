@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
+require_relative "../vendor/optimist"
 require_relative "recheck/check/v1"
 require_relative "recheck/cli"
+require_relative "recheck/command/reporters"
+require_relative "recheck/command/run"
+require_relative "recheck/command/setup"
 require_relative "recheck/count_stats"
 require_relative "recheck/reporter/base"
 require_relative "recheck/reporter/default"
 require_relative "recheck/reporter/json"
 require_relative "recheck/results"
-require_relative "recheck/run"
-require_relative "recheck/setup"
 require_relative "recheck/version"
 require_relative "recheck/with_reporters"
 

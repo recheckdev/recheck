@@ -1,5 +1,3 @@
-require_relative "../../vendor/optimist"
-
 module Recheck
   class Cli
     EXIT_CODE = {
@@ -9,9 +7,9 @@ module Recheck
     }
 
     COMMANDS = {
-      setup: "Set up a new check suite in the current directory",
+      reporters: "List available reporters",
       run: "Run checks",
-      reporters: "List available reporters"
+      setup: "Set up a new check suite in the current directory"
     }
 
     def initialize(argv)
@@ -38,7 +36,7 @@ module Recheck
       Recheck::Optimist.die "unknown command '#{command}'" unless COMMANDS.include? command
 
       command_class = command.to_s.split("_").map(&:capitalize).join("")
-      Recheck.const_get(command.to_s.split("_").map(&:capitalize).join("")).new(global_options[:_leftovers]).run
+      Recheck::Command.const_get(command.to_s.split("_").map(&:capitalize).join("")).new(global_options[:_leftovers]).run
 
       exit EXIT_CODE[:no_errors]
     rescue Interrupt
