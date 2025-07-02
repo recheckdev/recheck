@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["Peter Bhat Harkins"]
   spec.email = ["peter@recheck.coop"]
 
-  spec.summary = "Recheck your production data integrity"
+  spec.summary = "Recheck your production data integrity (in Rails)"
   spec.description = "Check on validations, background jobs, third-party integrations, state machines, and business rules"
   spec.homepage = "https://recheck.dev"
   spec.license = "LGPL-3.0"
@@ -19,9 +19,8 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "https://github.com/recheckdev/recheck/ruby/recheck-rails/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
-  # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
   spec.files = Dir.chdir(__dir__) do
-    `git ls-files -z`.split("\x0").reject do |f|
+    `find . -type f -print0`.split("\x0").select { |f| f.match?(/\.rb$/) }.map { |f| f.sub(/\A\.\//, "") }.reject do |f|
       (File.expand_path(f) == __FILE__) ||
         f.start_with?(*%w[bin/ test/ spec/ features/ .git .github Gemfile])
     end

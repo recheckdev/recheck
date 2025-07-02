@@ -1,8 +1,6 @@
-/.bundle/
-/.yardoc
-/_yardoc/
-/coverage/
-/doc/
-/pkg/
-/spec/reports/
-/tmp/
+.bundle/
+.yardoc
+_yardoc/
+ruby/recheck/build/*gem
+coverage/*
+tmp/*

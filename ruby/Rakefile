@@ -1,0 +1,199 @@
+VERSION_FILE = "recheck/lib/recheck/version.rb"
+require_relative VERSION_FILE
+require "io/console"
+
+desc "Bump version number"
+task :bump, [:version] do |_, args|
+  version = args[:version]
+
+  if version.nil? || version.empty?
+    puts "Error: Version argument is required"
+    puts "Usage: rake bump[x.y.z]"
+    exit 1
+  end
+
+  # Update version.rb file
+  content = File.read(version_file)
+  updated_content = content.gsub(/VERSION\s*=\s*['"][\d\.]+['"]/, "VERSION = '#{version}'")
+
+  if content == updated_content
+    puts "No changes made to version file. Is the version format correct?"
+    exit 1
+  end
+
+  File.write(VERSION_FILE, updated_content)
+  puts "Updated #{VERSION_FILE} to version #{version}"
+
+  # Update the VERSION constant in the current process for other tasks
+  Recheck.send(:remove_const, :VERSION)
+  Recheck.const_set(:VERSION, version)
+end
+
+def gem_filename gem_name
+  gem_filename = "build/#{gem_name}-#{Recheck::VERSION}.gem"
+end
+
+desc "Build all gems"
+task :build do
+  %w[recheck recheck-rails].each do |gem_name|
+    Rake::Task["build_gem"].execute(gem_name: gem_name)
+  end
+end
+
+desc "Build a specific gem"
+task :build_gem, [:gem_name] do |_, args|
+  gem_name = args[:gem_name]
+  Dir.chdir(gem_name) do
+    sh "gem build #{gem_name}.gemspec -o #{gem_filename gem_name}"
+  end
+end
+
+desc "Check all gems' CHANGELOG.md files"
+task :check do
+  errors = false
+  %w[recheck recheck-rails].each do |gem_name|
+    result = Rake::Task["check_gem"].execute(gem_name: gem_name)
+    errors = true if result == false
+  end
+  exit 1 if errors
+end
+
+desc "Check a specific gem's CHANGELOG.md"
+task :check_gem, [:gem_name] => [] do |_, args|
+  gem_name = args[:gem_name]
+  errors = false
+
+  Dir.chdir(gem_name) do
+    changelog_path = "CHANGELOG.md"
+    content = File.read(changelog_path)
+    sections = content.split(/^## /).drop(1).map { |s| "## #{s}" }
+
+    # Check for non-empty Unreleased section
+    unreleased = sections.find { |s| s.start_with?("## [Unreleased]") }
+    if unreleased
+      unreleased_content = unreleased.gsub(/^## \[Unreleased\].*?$/, "").strip
+      next_heading = unreleased_content.match(/^##\s/)
+
+      if next_heading.nil? && !unreleased_content.empty?
+        puts "Error: #{gem_name}/#{changelog_path} has changles listed as [Unreleased]"
+        errors = true
+      end
+    end
+
+    # Check for current version
+    current_version_section = sections.find { |s| s.match?(/^## \[#{Regexp.escape(Recheck::VERSION)}\]/o) }
+    if current_version_section.nil?
+      puts "Error: #{gem_name}/#{changelog_path} is missing entry for version #{Recheck::VERSION}"
+      errors = true
+    else
+      # Check if the current version section has content
+      version_content = current_version_section.gsub(/^## \[#{Regexp.escape(Recheck::VERSION)}\].*?$/o, "").strip
+      next_heading = version_content.match(/^##\s/)
+
+      if next_heading || version_content.empty?
+        puts "Error: #{gem_name}/#{changelog_path} has empty content for version #{Recheck::VERSION}"
+        errors = true
+      end
+    end
+  end
+
+  exit 1 if errors
+  !errors
+end
+
+desc "Push all gems to RubyGems"
+task :push do
+  %w[recheck recheck-rails].each do |gem_name|
+    Rake::Task["push_gem"].execute(gem_name: gem_name)
+  end
+end
+
+desc "Push a specific gem to RubyGems"
+task :push_gem, [:gem_name] do |_, args|
+  gem_name = args[:gem_name]
+  Dir.chdir(gem_name) do
+    sh "gem push #{gem_filename gem_name}"
+  end
+end
+
+desc "Release new versions of all gems"
+task :release do
+  # Display changelogs for review
+  %w[recheck recheck-rails].each do |gem_name|
+    puts "\n#{gem_name} CHANGELOG.md:"
+    puts "=" * 40
+    changelog_path = "#{gem_name}/CHANGELOG.md"
+    if File.exist?(changelog_path)
+      puts File.read(changelog_path)
+    else
+      puts "CHANGELOG.md not found"
+      exit 1
+    end
+    puts "=" * 40
+  end
+
+  # Ask for confirmation
+  print "\nCut a new release? (y/N): "
+  response = STDIN.gets.chomp.downcase
+  exit 0 unless response == "y"
+
+  # Prompt for new version
+  print "Enter new version number: "
+  new_version = STDIN.gets.chomp
+
+  if new_version.empty? || !new_version.match?(/^\d+\.\d+\.\d+$/)
+    puts "Invalid version format. Expected x.y.z"
+    exit 1
+  end
+
+  # Update changelogs
+  %w[recheck recheck-rails].each do |gem_name|
+    changelog_path = "#{gem_name}/CHANGELOG.md"
+    next unless File.exist?(changelog_path)
+
+    content = File.read(changelog_path)
+    sections = content.split(/^## /)
+
+    # Find the Unreleased section
+    header = sections[0]
+    unreleased_idx = sections.find_index { |s| s.start_with?("[Unreleased]") }
+
+    exit 1 unless unreleased_idx
+    unreleased = sections[unreleased_idx]
+    unreleased_content = unreleased.gsub(/^\[Unreleased\].*?$/, "").strip
+
+    # Check if there are unreleased changes
+    if unreleased_content.empty? || unreleased_content.match?(/^##\s/)
+      # No unreleased changes, create a new version section with placeholder text
+      version_section = "[#{new_version}] - #{Time.now.strftime("%Y-%m-%d")}\n\nNo changes, released to keep version in step with other gem(s).\n\n"
+    else
+      # There are unreleased changes, create a new version section with those changes
+      version_section = "[#{new_version}] - #{Time.now.strftime("%Y-%m-%d")}\n\n#{unreleased_content}\n\n"
+
+      # Replace unreleased content with empty section
+      sections[unreleased_idx] = "[Unreleased]\n\n"
+    end
+
+    # Insert new version section
+    sections.insert(unreleased_idx + 1, version_section)
+
+    # Reconstruct the changelog
+    new_content = header + sections.map { |s| "## #{s}" }.join
+    File.write(changelog_path, new_content)
+    puts "Updated #{changelog_path}"
+  end
+
+  # Update version.rb
+  Rake::Task["bump"].invoke(new_version)
+
+  # Run check, build, and push tasks
+  begin
+    Rake::Task["check"].invoke
+    Rake::Task["build"].invoke
+    Rake::Task["push"].invoke
+    puts "\nRelease #{new_version} completed successfully!"
+  rescue => e
+    puts "\nRelease failed: #{e.message}"
+    exit 1
+  end
+end
