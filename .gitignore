@@ -1,4 +1,5 @@
 .bundle/
+.jj
 .yardoc
 _yardoc/
 ruby/recheck/build/*gem

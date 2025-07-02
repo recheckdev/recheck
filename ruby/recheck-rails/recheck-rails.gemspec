@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   spec.files = Dir.chdir(__dir__) do
-    `find . -type f -print0`.split("\x0").select { |f| f.match?(/\.rb$/) }.map { |f| f.sub(/\A\.\//, "") }.reject do |f|
+    `find . -type f -print0`.split("\x0").select { |f| f.match?(/\.rb$/) }.map { |f| f.sub(/\A\.\//, '') }.reject do |f|
       (File.expand_path(f) == __FILE__) ||
         f.start_with?(*%w[bin/ test/ spec/ features/ .git .github Gemfile])
     end

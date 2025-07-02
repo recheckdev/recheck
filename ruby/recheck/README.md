@@ -1,4 +1,4 @@
-#d Recheck
+# Recheck
 
 Recheck is a tool for checking the correctness of production data, inspired by an internal tool at Stripe.
 
@@ -43,6 +43,8 @@ It's worth writing a check any time you have:
 Add Recheck to your `Gemfile`:
 
     gem "recheck"
+    # if you're using rails, instead add:
+    gem "recheck-rails"
 
 Recheck runs against production data, so don't put it only in a `development` or `test` group like a testing tool.
 

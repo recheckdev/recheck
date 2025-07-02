@@ -6,7 +6,7 @@ require "erb"
 module Recheck
   module Command
     class Reporters
-      def initialize(argv)
+      def initialize(argv: [])
         @options = Optimist.options(argv) do
           banner "recheck list_reporters: load and list reporters"
           opt :location, "Show source location", short: :l, type: :boolean, default: false
@@ -25,7 +25,7 @@ module Recheck
     end # Reporters
 
     class Run
-      def initialize(argv)
+      def initialize(argv: [])
         @options = {
           reporters: []
         }
@@ -121,7 +121,7 @@ module Recheck
     end # Run
 
     class Setup
-      def initialize(argv)
+      def initialize(argv: [])
         @argv = argv
         @options = Optimist.options(@argv) do
           banner "recheck setup: create a check suite"
@@ -135,9 +135,7 @@ module Recheck
         create_site_checks
         setup_model_checks
         run_linter
-
-        puts
-        puts "Run `git add --all` and `git commit` to checkpoint this setup, then `bundle exec recheck run` to check for the first time."
+        vcs_message
       end
 
       def run_linter
@@ -189,6 +187,8 @@ module Recheck
         end
       end
 
+      # warning: the rails gem overrides this method because it can
+      # provide better checks with the rails env loaded
       def setup_model_checks
         puts "Scanning for ActiveRecord models..."
         model_files.each do |mf|
@@ -295,6 +295,11 @@ module Recheck
       # surely there's a better way to find the gem's root
       def template_dir
         File.join(File.expand_path("../..", __dir__), "template")
+      end
+
+      def vcs_message
+        puts
+        puts "Run `git add --all` and `git commit` to checkpoint this setup, then `bundle exec recheck run` to check for the first time."
       end
     end # Setup
   end

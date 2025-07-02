@@ -1,0 +1,11 @@
+require_relative '#{depth * "../"}recheck_helper'
+
+class <%= class_name %>Checker < Recheck::Checker::Base
+  def query_all
+    <%= model.name %>.all.find_each
+  end
+
+  def check_valid record
+    record.valid?
+  end
+end

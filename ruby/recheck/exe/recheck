@@ -5,4 +5,4 @@ $LOAD_PATH.unshift(
 )
 
 require "recheck"
-Recheck::Cli.new(ARGV).run
+Recheck::Cli.new(argv: ARGV).run
