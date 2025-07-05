@@ -2,6 +2,8 @@
 
 module Recheck
   class Runner
+    PASSTHROUGH_EXCEPTIONS = [NoMemoryError, SignalException, SystemExit]
+
     def initialize(checkers: [], reporters: [])
       # ruby sets maintain order and we want to check/report in user-provided order
       @checkers = checkers.to_set
@@ -47,7 +49,13 @@ module Recheck
                   # ...run check(record)
                   result = checker.public_send(check, record)
 
-                  check_counts.increment(result.type)
+                  begin
+                    check_counts.increment(result.type)
+                  rescue *PASSTHROUGH_EXCEPTIONS
+                    raise
+                  rescue => e
+                    result = Error.new(checker:, check:, record: record, type: :exception, exception: e)
+                  end
 
                   # if the first 20 error out, skip the check method, it's probably buggy
                   if check_counts.reached_blanket_failure?
@@ -63,6 +71,13 @@ module Recheck
                   end
                   checker_counts << check_counts
                 end
+              end
+            rescue *PASSTHROUGH_EXCEPTIONS
+              raise
+            rescue => e
+              @reporters.each do |check_reporter|
+                result = Error.new(checker:, check: query, record: nil, type: :exception, exception: e)
+                check_reporter.around_check(checker:, check: query, record: nil) { result }
               end
             end
             checker_counts

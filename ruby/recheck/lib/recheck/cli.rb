@@ -35,7 +35,6 @@ module Recheck
       command = global_options[:_leftovers].shift&.to_sym || :help
       Recheck::Optimist.die "unknown command '#{command}'" unless COMMANDS.include? command
 
-      command_class = command.to_s.split("_").map(&:capitalize).join("")
       Recheck::Command.const_get(command.to_s.split("_").map(&:capitalize).join("")).new(argv: global_options[:_leftovers]).run
 
       exit EXIT_CODE[:no_errors]
