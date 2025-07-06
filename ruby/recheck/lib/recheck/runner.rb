@@ -88,19 +88,20 @@ module Recheck
                 checks.each do |check|
                   check_counts = CountStats.new
 
-                  # result = checker.public_send(check, record)
-                  result = reduce(reporters: @reporters, hook: :around_check, kwargs: {checker:, check:, record:}) do |check_reporter|
-                    check_reporter.around_check(checker:, check:, record:) { checker.public_send(check, record) }
-                  end
-                  @yields.raise_unless_all_reporters_yielded(hook: :around_check)
-
                   begin
-                    check_counts.increment(result.type)
+                    raw_result = nil
+                    reduce(reporters: @reporters, hook: :around_check, kwargs: {checker:, check:, record:}) do
+                      raw_result = checker.public_send(check, record)
+                    end
+                    @yields.raise_unless_all_reporters_yielded(hook: :around_check)
                   rescue *PASSTHROUGH_EXCEPTIONS
                     raise
                   rescue => e
-                    result = Error.new(checker:, check:, record: record, type: :exception, exception: e)
+                    result = Error.new(checker:, check:, record:, type: :exception, exception: e)
                   end
+
+                  result = raw_result ? success : Error.new(checker:, check:, record:, type: :fail)
+                  check_counts.increment(result.type)
 
                   # if the first 20 error out, skip the check method, it's probably buggy
                   if check_counts.reached_blanket_failure?
