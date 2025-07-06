@@ -42,6 +42,7 @@ class ReporterTest < Test
     end
 
     assert_includes Recheck::Reporter::Base.subclasses, test_reporter
+
     Recheck::Reporter::Base.instance_variable_set(:@subclasses, original_subclasses)
   end
 end
