@@ -1,4 +1,4 @@
-require_relative '#{depth * "../"}recheck_helper'
+require_relative '<%= "../" * depth %>recheck_helper'
 
 class <%= class_name %>Checker < Recheck::Checker::Base
   def query_all

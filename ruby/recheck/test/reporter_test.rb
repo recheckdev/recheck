@@ -5,7 +5,7 @@ module ActiveRecord
   end
 end
 
-class TestModel < ActiveRecord::Base
+class ReporterTestModel < ActiveRecord::Base
   def id
     42
   end
@@ -15,7 +15,7 @@ class TestChecker; end
 
 class ReporterTest < Test
   def setup
-    @test_record = TestModel.new
+    @test_record = ReporterTestModel.new
     @test_checker = TestChecker.new
 
     @mock_error = Recheck::Error.new(

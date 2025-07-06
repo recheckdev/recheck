@@ -56,7 +56,7 @@ module Recheck
         @yields.expect(hook:, reporter:)
         -> {
           result = nil
-          reporter.public_send(hook, kwargs) {
+          reporter.public_send(hook, **kwargs) {
             @yields.ran(hook:, reporter:)
             result = proc.call.freeze
           }
@@ -65,9 +65,22 @@ module Recheck
       end.call
     end
 
+    # only for calling from inside run()
+    def cant_run reporters:, checker:, queries:, checks:, type:
+      checker_counts = CountStats.new
+      checker_counts.increment type
+      @total_counts << checker_counts
+
+      error = Error.new(checker:, check: nil, record: nil, type:, exception: nil)
+      reduce(reporters:, hook: :around_checker, kwargs: {checker:, queries:, checks:}) do
+        reporters.each { it.halt(checker:, error:, check: nil) }
+        checker_counts
+      end
+    end
+
     # n queries * n check methods * n records = O(1) right?
     def run
-      total_counts = CountStats.new
+      @total_counts = CountStats.new
       # All happy families are alike; each unhappy family is unhappy in its own way.
       success = Success.new
 
@@ -76,13 +89,31 @@ module Recheck
         # for each checker...
         @checkers.each do |checker|
           checker_counts = CountStats.new
-          queries = checker.class.query_methods
-          checks = checker.class.check_methods
+          puts "checker is #{checker} with class #{checker.class}"
+          if !checker.class.respond_to?(:query_methods)
+            cant_run(reporters: @reporters, checker:, type: :no_query_methods, queries: nil, checks: nil)
+            break
+          end
+          if (queries = checker.class.query_methods).empty?
+            cant_run(reporters: @reporters, checker:, type: :no_queries, queries:, checks: nil)
+            break
+          end
+
+          if !checker.class.respond_to?(:check_methods)
+            cant_run(reporters: @reporters, checker:, type: :no_check_methods, queries:, checks: nil)
+            break
+          end
+          if (checks = checker.class.check_methods).empty?
+            cant_run(reporters: @reporters, checker:, type: :no_checks, queries:, checks:)
+            break
+          end
 
           reduce(reporters: @reporters, hook: :around_checker, kwargs: {checker:, queries:, checks:}) do
             # for each query_...
             queries.each do |query|
+              checker_counts.increment :queries
               # for each record...
+              # TODO: must handle if the query method yields (find_each) OR returns (current)
               checker.public_send(query).each do |record|
                 # for each check_method...
                 checks.each do |check|
@@ -103,12 +134,13 @@ module Recheck
                   result = raw_result ? success : Error.new(checker:, check:, record:, type: :fail)
                   check_counts.increment(result.type)
 
-                  # if the first 20 error out, skip the check method, it's probably buggy
+                  # if the first 20 error out, halt the check method, it's probably buggy
                   if check_counts.reached_blanket_failure?
-                    blanket = Error.new(checker:, check:, record: nil, type: :blanket, exception: nil)
-                    @reporters.each do |r|
-                      r.around_check(check_class: @checker_class, check:) { blanket }
-                    end
+                    checker_counts.increment :blanket
+
+                    error = Error.new(checker:, check: nil, record: nil, type: :blanket, exception: nil)
+                    reporters.each { it.halt(checker:, error:, check:) }
+
                     break
                   end
 
@@ -126,11 +158,11 @@ module Recheck
             checker_counts
           end
           @yields.raise_unless_all_reporters_yielded(hook: :around_checker)
-          total_counts << checker_counts
+          @total_counts << checker_counts
         end
+        @total_counts
       end
       @yields.raise_unless_all_reporters_yielded(hook: :around_run)
-      total_counts
     end
   end
 end

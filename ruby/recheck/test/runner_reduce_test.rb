@@ -1,4 +1,4 @@
-class MockReporter
+class ReduceMockReporter < Recheck::Reporter::Base
   attr_reader :calls
 
   def initialize(arg:, calls:)
@@ -19,8 +19,8 @@ class RunnerReduceTest < Test
     calls = []
     # I know I'll eventually get bit because this doesn't match the sig of Reporter::Base#initialize
     # but I need to share state between the reporters to test the order of execution.
-    reporter1 = MockReporter.new(arg: :reporter1, calls:)
-    reporter2 = MockReporter.new(arg: :reporter2, calls:)
+    reporter1 = ReduceMockReporter.new(arg: :reporter1, calls:)
+    reporter2 = ReduceMockReporter.new(arg: :reporter2, calls:)
     runner = Recheck::Runner.new(reporters: [reporter1, reporter2])
 
     # Call reduce with a block that returns our test value

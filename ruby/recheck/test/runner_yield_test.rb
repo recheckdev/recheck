@@ -3,15 +3,15 @@ class UnyieldingReporter < Recheck::Reporter::Base
     @skip = arg
   end
 
-  def around_run *args
+  def around_run **kwargs
     yield unless @skip == :around_run
   end
 
-  def around_checker *args
+  def around_checker **kwargs
     yield unless @skip == :around_checker
   end
 
-  def around_check *args
+  def around_check **kwargs
     yield unless @skip == :around_check
   end
 end

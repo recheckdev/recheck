@@ -71,6 +71,7 @@ module Recheck
         end
 
         files.each do |file|
+          # bug: if the file has a syntax error, Ruby silently exits instead of raising SyntaxError
           require File.expand_path(file)
         rescue => e
           puts "Loading #{file} threw an exception: #{e.class}: #{e.message}, #{e.backtrace.first}"
@@ -87,7 +88,7 @@ module Recheck
           exit Cli::EXIT_CODE[:run_errors]
         end
 
-        Recheck::Checker::Base.checker_classes
+        Recheck::Checker::Base.checker_classes.map(&:new)
       end
 
       def check_missing_files
@@ -100,7 +101,7 @@ module Recheck
       end
 
       def load_reporters(reporters)
-        reporters.each { |option|
+        reporters.map { |option|
           class_name, arg = option.split(/(?<!:):(?!:)/, 2)
           resolve_reporter_class(class_name).new(arg:)
         }

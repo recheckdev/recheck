@@ -12,13 +12,14 @@ module Recheck
 
         # surely there's a better way to find the gem's root
         template_dir = File.join(File.expand_path("../..", __dir__), "template")
-        template = File.read("#{template_dir}/application_record_check.rb.erb")
+        model_template = File.read("#{template_dir}/application_record_check.rb.erb")
+        validation_template = File.read("#{template_dir}/validation_check.rb.erb")
 
         # Get all non-abstract ActiveRecord model classes
         models = ApplicationRecord.descendants.each do |model|
-          print "#{model} "
-          puts "skipping abstract class" or next if model.abstract_class?
-          puts "skipping readonly model (probably a view)" or next if model.new.send(:readonly?)
+          puts "#{model}"
+          puts "  skipping abstract class" or next if model.abstract_class?
+          puts "  skipping readonly model (probably a view)" or next if model.new.send(:readonly?)
 
           source_location = Object.const_source_location(model.to_s)
           model_filename = source_location[0].sub(%r{#{Rails.root}}, "").sub(%r{^/app/models/}, "")
@@ -28,15 +29,20 @@ module Recheck
             exit 1
           end
 
-          # pluralize dir because an old enough mistake is called a "convention"
-          check_filename = "recheck/models/#{model_filename}"
+          model_check_filename = "recheck/model/#{model_filename}"
           class_name = model.name.sub("::", "_") # to differentiate AccountName and Account::Name
           depth = 1 + model_filename.count("/")
 
-          puts "  #{check_filename}"
-          FileUtils.mkdir_p(File.dirname(check_filename))
-          rendered = ERB.new(template).result_with_hash({class_name:, depth:, model:})
-          File.write(check_filename, rendered)
+          puts "  #{model_check_filename}"
+          FileUtils.mkdir_p(File.dirname(model_check_filename))
+          rendered = ERB.new(model_template).result_with_hash({class_name:, depth:, model:})
+          File.write(model_check_filename, rendered)
+
+          validation_check_filename = "recheck/validation/#{model_filename}"
+          puts "  #{validation_check_filename}"
+          FileUtils.mkdir_p(File.dirname(validation_check_filename))
+          rendered = ERB.new(validation_template).result_with_hash({class_name:, depth:, model:})
+          File.write(validation_check_filename, rendered)
 
           FileUtils.mkdir_p("recheck/regression")
         end
