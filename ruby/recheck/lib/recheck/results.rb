@@ -6,13 +6,13 @@ module Recheck
 
   # This doesn't track all the fields because Recheck is about finding errors and failures.
   # If you need more data, please tell me about your use case?
-  Success = Data.define do
+  Pass = Data.define do
     def type
       :pass
     end
   end
 
-  Error = Data.define(:checker, :check, :record, :type, :exception) do
+  Error = Data.define(:checker, :query, :check, :record, :type, :exception) do
     def initialize(*args)
       super
       raise ArgumentError unless ERROR_TYPES.include? type

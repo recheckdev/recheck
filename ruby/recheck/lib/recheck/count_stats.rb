@@ -14,13 +14,13 @@ module Recheck
     end
 
     def <<(other)
-      other.queries
+      @queries += other.queries
       @counts.merge!(other.counts) { |type, self_v, other_v| self_v + other_v }
       self
     end
 
     def all_pass?
-      @counts.slice(Recheck::ERROR_TYPES).any? { |type, count| count.nonzero? }
+      @counts.slice(*Recheck::ERROR_TYPES).all? { |type, count| count.zero? }
     end
 
     def all_zero?
@@ -46,7 +46,7 @@ module Recheck
     end
 
     def summary
-      "#{queries} queries, " + (
+      "#{queries} #{(queries == 1) ? "query" : "queries"}, " + (
         [:pass, :fail] +
         [
           :exception,

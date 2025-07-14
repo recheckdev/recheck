@@ -49,16 +49,17 @@ module Recheck
       rescue Interrupt
         puts "\nOperation interrupted by user."
       rescue => e
-        puts "\nAn unexpected error occurred:"
+        puts "\nAn error occurred in Recheck:"
         puts e.full_message(highlight: false)
-        exit Cli::EXIT_CODE[:run_error]
-      ensure
-        exit Cli::EXIT_CODE[total_counts&.all_pass? ? :no_errors : :any_errors]
+        exit Cli::EXIT_CODE[:recheck_error]
+        # ensure
+        #  puts "ensure"
+        #  exit Cli::EXIT_CODE[total_counts&.all_pass? ? :no_errors : :any_errors]
       end
 
       def load_checkers
         files = if @file_patterns.empty?
-          Dir.glob("recheck/**/*_checker.rb").sort
+          Dir.glob("recheck/**/*.rb").sort
         else
           check_missing_files
           @file_patterns.flat_map do |pattern|
@@ -73,19 +74,19 @@ module Recheck
         files.each do |file|
           # bug: if the file has a syntax error, Ruby silently exits instead of raising SyntaxError
           require File.expand_path(file)
-        rescue => e
+        rescue LoadError => e
           puts "Loading #{file} threw an exception: #{e.class}: #{e.message}, #{e.backtrace.first}"
           unless file.start_with?("recheck/")
             puts "that filename doesn't start with \"recheck/\", did you give the name of a model instead of its checker?"
           end
-          exit Cli::EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:load_error]
         end
 
         if Recheck::Checker::Base.checker_classes.empty?
           error = "No checks detected." +
             (@file_patterns.empty? ? " Did you run `bundle exec recheck setup`?" : "")
           warn error
-          exit Cli::EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:load_error]
         end
 
         Recheck::Checker::Base.checker_classes.map(&:new)
@@ -96,7 +97,7 @@ module Recheck
         unless missing_files.empty?
           puts "Error: The following files do not exist:"
           missing_files.each { |file| puts file }
-          exit Cli::EXIT_CODE[:run_errors]
+          exit Cli::EXIT_CODE[:load_error]
         end
       end
 
@@ -107,7 +108,10 @@ module Recheck
         }
       rescue ArgumentError => e
         puts "Bad argument to Reporter (#{e.backtrace.first}): #{e.message}"
-        exit Cli::EXIT_CODE[:run_errors]
+        exit Cli::EXIT_CODE[:load_error]
+      rescue LoadError => e
+        puts "Loading #{file} threw an exception: #{e.class}: #{e.message}, #{e.backtrace.first}"
+        exit Cli::EXIT_CODE[:load_error]
       end
 
       def resolve_reporter_class(reporter_name)
@@ -117,7 +121,7 @@ module Recheck
           next
         end
         puts "Error: Reporter class '#{reporter_name}' not found globally or in Recheck::Reporter."
-        exit Cli::EXIT_CODE[:run_errors]
+        exit Cli::EXIT_CODE[:load_error]
       end
     end # Run
 
@@ -147,8 +151,8 @@ module Recheck
       end
 
       def detect_linter
-        return "bundle exec standardrb --fix-unsafely" if File.exist?(".standard.yml") || gemfile_includes?("standard")
-        return "bundle exec rubocop --autocorrect-all" if File.exist?(".rubocop.yml") || gemfile_includes?("rubocop")
+        return "bundle exec standardrb --fix-unsafely recheck" if File.exist?(".standard.yml") || gemfile_includes?("standard")
+        return "bundle exec rubocop --autocorrect-all recheck" if File.exist?(".rubocop.yml") || gemfile_includes?("rubocop")
         nil
       end
 

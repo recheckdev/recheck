@@ -48,18 +48,18 @@ module Recheck
         counts = yield
       end
 
-      def around_check(checker:, check:, record:)
+      def around_check(checker:, query:, check:, record:)
         result = yield
       end
 
-      def halt(checker:, error:, check:)
+      def halt(checker:, query:, error:, check: nil)
         # running the checker was halted, so there's no result available for yield
       end
     end # Base
 
     class Cron < Base
       def self.help
-        "Prints failures/exceptions but nothing on success. For use in cron jobs, which use silence to incidate success."
+        "Prints failures/exceptions but nothing on pass. For use in cron jobs, which use silence to incidate success."
       end
 
       def initialize(arg:)
@@ -86,27 +86,27 @@ module Recheck
         end
       end
 
-      def around_check(checker:, check:)
+      def around_check(checker:, query:, check:, record:)
         result = yield
         @errors << result if result.is_a? Error
       end
 
-      def halt(checker:, error:, check: nil)
+      def halt(checker:, query:, error:, check: nil)
         @errors << error
       end
 
       def print_errors
         failure_details = []
-        grouped_errors = @errors.group_by { |e| [e.checker_class, e.check, e.type] }
+        grouped_errors = @errors.group_by { |e| [e.checker_class, e.query, e.check, e.type] }
 
-        grouped_errors.each do |(checker_class, check), group_errors|
+        grouped_errors.each do |(checker_class, query, check), group_errors|
           case group_errors.first.type
           when :fail
             ids = group_errors.map { |e| fetch_record_id(e.record) }.join(", ")
-            failure_details << "  #{checker_class}##{check} failed for records: #{ids}"
+            failure_details << "  #{checker_class}##{query} -> #{check} failed for records: #{ids}"
           when :exception
             error = group_errors.first
-            error_message = "  #{checker_class}##{check} exception #{error.exception.message} for #{group_errors.size} records"
+            error_message = "  #{checker_class}##{query} -> #{check} exception #{error.exception.message} for #{group_errors.size} records"
             failure_details << error_message
             failure_details << error.record.full_message(highlight: false, order: :top) if error.record.respond_to?(:full_message)
           when :blanket
@@ -132,7 +132,7 @@ module Recheck
         total_counts = yield
 
         puts "Total: #{total_counts.summary}"
-        puts "Queries found no records to check (this is OK when queries can select only invalid data)" if total_counts.all_zero?
+        puts "Queries found no records to check (this is OK when a checker queries for invalid data)" if total_counts.all_zero?
 
         total_counts
       end
@@ -151,7 +151,7 @@ module Recheck
         counts
       end
 
-      def around_check(checker:, check:)
+      def around_check(checker:, query:, check:, record:)
         result = yield
 
         @current_counts.increment(result.type)
@@ -160,7 +160,7 @@ module Recheck
         @errors << result if result.is_a? Error
       end
 
-      def halt(checker:, error:, check: nil)
+      def halt(checker:, query:, error:, check: nil)
         @errors << error
       end
 
@@ -170,30 +170,30 @@ module Recheck
 
       def print_errors
         failure_details = []
-        grouped_errors = @errors.group_by { |e| [e.checker, e.check, e.type] }
+        grouped_errors = @errors.group_by { |e| [e.checker, e.query, e.check, e.type] }
 
-        grouped_errors.each do |(checker_class, check), group_errors|
+        grouped_errors.each do |(checker, query, check), group_errors|
           case group_errors.first.type
           when :fail
             ids = group_errors.map { |e| fetch_record_id(e.record) }.join(", ")
-            failure_details << "  #{checker_class}##{check} failed for records: #{ids}"
+            failure_details << "  #{checker.class}##{query} -> #{check} failed for records: #{ids}"
           when :exception
             error = group_errors.first
-            error_message = "  #{checker_class}##{check} exception #{error.exception.message} for #{group_errors.size} records"
+            error_message = "  #{checker.class}##{query} -> #{check} exception #{error.exception.message} for #{group_errors.size} records"
             failure_details << error_message
-            failure_details << error.record.full_message(highlight: false, order: :top) if error.record.respond_to?(:full_message)
+            failure_details << error.exception.full_message(highlight: false, order: :top) if error.exception.respond_to?(:full_message)
           when :no_query_methods
-            failure_details << "  #{checker_class}: Did not define .query_methods"
+            failure_details << "  #{checker.class}: Did not define .query_methods"
           when :no_queries
-            failure_details << "  #{checker_class} does not report any query methods (via .query_methods)"
+            failure_details << "  #{checker.class} Defines .query_methods, but it didn't return any"
           when :no_check_methods
-            failure_details << "  #{checker_class}: Did not define .check_methods"
+            failure_details << "  #{checker.class}: Did not define .check_methods"
           when :no_checks
-            failure_details << "  #{checker_class} does not report any check methods (via .check_methods)"
+            failure_details << "  #{checker.class} Defines .check_methods, but it didn't return any"
           when :blanket
-            failure_details << "  #{checker_class}: Skipping because the first 20 checks all failed. Either there's a lot of bad data or there's something wrong with the checks."
+            failure_details << "  #{checker.class}: Skipping because the first 20 checks all failed. Either there's a lot of bad data or there's something wrong with the checker."
           else
-            failure_details << "  #{checker_class} unknown error"
+            failure_details << "  #{checker.class} unknown error"
           end
         end
         puts failure_details
@@ -226,7 +226,7 @@ module Recheck
         yield
       end
 
-      def around_check(checker:, checks:)
+      def around_check(checker:, query:, check:, record:)
         result = yield
 
         @results[checker.class.to_s][check][:counts].increment(result.type)
@@ -248,7 +248,7 @@ module Recheck
         end
       end
 
-      def halt(checker:, error:, check: "meta")
+      def halt(checker:, query:, error:, check: "meta")
         @results[checker.class.to_s][check][:halt] = error.type
       end
     end # Json

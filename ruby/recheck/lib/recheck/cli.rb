@@ -1,9 +1,10 @@
 module Recheck
   class Cli
     EXIT_CODE = {
-      no_errors: 0,  # all checks passed
-      any_errors: 1, # any check returns fail or threw an exception
-      run_errors: 2  # recheck itself encountered an error
+      no_errors: 0,     # all checks passed
+      any_errors: 1,    # any check returns fail or threw an exception
+      load_error: 2,    # error loading checker/reporter
+      recheck_error: 3  # recheck itself encountered an error
     }.freeze
 
     COMMANDS = {
@@ -40,7 +41,7 @@ module Recheck
       exit EXIT_CODE[:no_errors]
     rescue Interrupt
       puts "\nOperation cancelled by user."
-      exit EXIT_CODE[:run_errors]
+      exit EXIT_CODE[:recheck_error]
     end
   end
 end

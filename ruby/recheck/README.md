@@ -1,3 +1,11 @@
+Beta note:
+Recheck is in __early beta__.
+You should expect and report crashes, bugs, or missing features.
+It is safe to try out because, by design, it does not write to your database.
+
+Please don't submit Recheck to Lobsters/Reddit/Hacker News/etc. yet,
+I'd really like it to exercise it and reach 1.0 first.
+
 # Recheck
 
 Recheck is a tool for checking the correctness of production data, inspired by an internal tool at Stripe.

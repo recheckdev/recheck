@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 class TestResults < Test
-  def test_success_type
-    success = Recheck::Success.new
-    assert_equal :pass, success.type
+  def test_pass_type
+    pass = Recheck::Pass.new
+    assert_equal :pass, pass.type
   end
 
   def test_error_initialization_with_invalid_type

@@ -8,8 +8,11 @@ require File.expand_path("../config/environment", __dir__)
 # $LOAD_PATH.unshift File.expand_path('../../lib', __dir__)
 # require 'your_app'
 
-# Load custom reporters
-Dir.glob("#{__dir__}/reporter/**/*.rb").sort.each { |file| require_relative file }
+# Load helpers and reporters; not checkers because all loaded checkers are run
+Dir.glob([
+  "#{__dir__}/*_helper*.rb",
+  "#{__dir__}/reporter/**/*.rb"
+]).sort.each { |file| require_relative file }
 
 # Add any other setup here.
 # You could also share code by writing a YourAppChecker class (or classes) for your checkers to inherit from.
