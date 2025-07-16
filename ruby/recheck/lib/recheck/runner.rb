@@ -149,7 +149,7 @@ module Recheck
               # puts "outer rescue: #{e.inspect}"
               @reporters.each do |check_reporter|
                 result = Error.new(checker:, query:, check: nil, record: nil, type: :exception, exception: e)
-                check_reporter.around_check(checker:, check: query, record: nil) { result }
+                check_reporter.around_check(checker:, query: query, check: nil, record: nil) { result }
               end
             end
             checker_counts

@@ -224,13 +224,33 @@ You can notify different teams however they most "enjoy" hearing about bad data.
 
 When you run your check suite you can name reporters to use:
 
-    recheck run --reporter Json
-    # TKTK sample output from Json
+    recheck run --reporter Json recheck/validation/user.rb | jq -R -r "fromjson?"
+    {
+      "UserValidationChecker": {
+        "check_no_invalid_records_found": {
+          "counts": {
+            "counts": {
+              "pass": 0,
+              "fail": 0,
+              "exception": 0,
+              "blanket": 0,
+              "no_query_methods": 0,
+              "no_queries": 0,
+              "no_check_methods": 0,
+              "no_checks": 0
+            },
+            "queries": 0
+          },
+          "fail": [],
+          "exception": []
+        }
+      }
+    }
 
 Notice this doesn't show the usual terminal output?
 That's printed by `Recheck::Reporter::Default`, which recheck only includes if you don't name any reporters in your command.
 
-When you `recheck run`, you can explicitly give the full namespace to a class like `--reporter Recheck::Reporter::Json` but it falls back to search in `Recheck::Reporter` for the convenience of saying `--reporter Json`.
+When you `recheck run`, you can give the full namespace to a class like `--reporter Recheck::Reporter::Json` but it searches in `Recheck::Reporter` for the convenience of saying `--reporter Json`.
 
 Reporters are even easier to write than checker classes:
 
@@ -270,7 +290,7 @@ class EmailTeamReporter < Recheck::Reporter::Base
   # This Reporter doesn't need a around_check_class_run or around_query,
   # so it doesn't define them.
 
-  def around_check(checker:, checks:)
+  def around_check(checker:, query:, check:)
     result = yield
 
     if result.is_a? Recheck::Error
@@ -367,7 +387,7 @@ Please don't bump the version number in PRs; I'll handle releases.
 ## License
 
 Recheck is an open core product.
-See [LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/LICENSE.md) for terms of the freely available license.
+See [license.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/license.md) for terms of the freely available license.
 
-The license for Recheck Pro can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/COMM-LICENSE.md).
+The license for Recheck Pro can be found in [comm-license.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/comm-license.md).
 Purchase at [Recheck.dev](https://recheck.dev).

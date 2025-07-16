@@ -216,7 +216,7 @@ module Recheck
       end
 
       def around_checker(checker:, queries:, checks:, check: [])
-        @results[checker.to_s] = checks.to_h { |method|
+        @results[checker.class.to_s] = checks.to_h { |method|
           [method, {
             counts: CountStats.new,
             fail: [],
@@ -229,6 +229,8 @@ module Recheck
       def around_check(checker:, query:, check:, record:)
         result = yield
 
+        # puts "around_check(checker: #{checker}, query: #{query}, check: #{check.inspect}, record: #{record}"
+        check ||= query
         @results[checker.class.to_s][check][:counts].increment(result.type)
         case result.type
         when :fail
@@ -240,7 +242,10 @@ module Recheck
             backtrace: result.exception.backtrace
           }
         end
+      end
 
+      def around_run(checkers)
+        yield
         if @filename
           File.write(@filename, @results.to_json)
         else

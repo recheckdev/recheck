@@ -40,7 +40,7 @@ Please don't bump the version number in PRs; I'll handle releases.
 ## License
 
 Recheck is an open core product.
-See [LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/LICENSE.md) for terms of the freely available license.
+See [license.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/license.md) for terms of the freely available license.
 
-The license for Recheck Pro can be found in [COMM-LICENSE.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/COMM-LICENSE.md).
+The license for Recheck Pro can be found in [comm-license.md](https://github.com/recheckdev/recheck/blob/main/ruby/recheck/comm-license.md).
 Purchase at [Recheck.dev](https://recheck.dev).
