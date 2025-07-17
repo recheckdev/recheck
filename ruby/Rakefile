@@ -13,13 +13,8 @@ task :bump, [:version] do |_, args|
   end
 
   # Update version.rb file
-  content = File.read(version_file)
+  content = File.read(VERSION_FILE)
   updated_content = content.gsub(/VERSION\s*=\s*['"][\d\.]+['"]/, "VERSION = '#{version}'")
-
-  if content == updated_content
-    puts "No changes made to version file. Is the version format correct?"
-    exit 1
-  end
 
   File.write(VERSION_FILE, updated_content)
   puts "Updated #{VERSION_FILE} to version #{version}"
@@ -48,7 +43,7 @@ task :build_gem, [:gem_name] do |_, args|
   end
 end
 
-desc "Check all gems' CHANGELOG.md files"
+desc "Check all gems' changelog.md files"
 task :check do
   errors = false
   %w[recheck recheck-rails].each do |gem_name|
@@ -58,13 +53,14 @@ task :check do
   exit 1 if errors
 end
 
-desc "Check a specific gem's CHANGELOG.md"
+desc "Check a specific gem's changelog.md"
 task :check_gem, [:gem_name] => [] do |_, args|
   gem_name = args[:gem_name]
   errors = false
+  puts "check_gem #{gem_name}"
 
   Dir.chdir(gem_name) do
-    changelog_path = "CHANGELOG.md"
+    changelog_path = "changelog.md"
     content = File.read(changelog_path)
     sections = content.split(/^## /).drop(1).map { |s| "## #{s}" }
 
@@ -120,13 +116,13 @@ desc "Release new versions of all gems"
 task :release do
   # Display changelogs for review
   %w[recheck recheck-rails].each do |gem_name|
-    puts "\n#{gem_name} CHANGELOG.md:"
+    puts "\n#{gem_name} changelog.md:"
     puts "=" * 40
-    changelog_path = "#{gem_name}/CHANGELOG.md"
+    changelog_path = "#{gem_name}/changelog.md"
     if File.exist?(changelog_path)
       puts File.read(changelog_path)
     else
-      puts "CHANGELOG.md not found"
+      puts "changelog.md not found"
       exit 1
     end
     puts "=" * 40
@@ -148,7 +144,7 @@ task :release do
 
   # Update changelogs
   %w[recheck recheck-rails].each do |gem_name|
-    changelog_path = "#{gem_name}/CHANGELOG.md"
+    changelog_path = "#{gem_name}/changelog.md"
     next unless File.exist?(changelog_path)
 
     content = File.read(changelog_path)
@@ -165,10 +161,10 @@ task :release do
     # Check if there are unreleased changes
     if unreleased_content.empty? || unreleased_content.match?(/^##\s/)
       # No unreleased changes, create a new version section with placeholder text
-      version_section = "[#{new_version}] - #{Time.now.strftime("%Y-%m-%d")}\n\nNo changes, released to keep version in step with other gem(s).\n\n"
+      version_section = "#{new_version} - #{Time.now.strftime("%Y-%m-%d")}\n\nNo changes, released to keep version in step with other gem(s).\n\n"
     else
       # There are unreleased changes, create a new version section with those changes
-      version_section = "[#{new_version}] - #{Time.now.strftime("%Y-%m-%d")}\n\n#{unreleased_content}\n\n"
+      version_section = "#{new_version} - #{Time.now.strftime("%Y-%m-%d")}\n\n#{unreleased_content}\n\n"
 
       # Replace unreleased content with empty section
       sections[unreleased_idx] = "[Unreleased]\n\n"

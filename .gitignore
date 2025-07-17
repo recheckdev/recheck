@@ -2,6 +2,6 @@
 .jj
 .yardoc
 _yardoc/
-ruby/recheck/build/*gem
+ruby/*/build/*gem
 coverage/*
 tmp/*
