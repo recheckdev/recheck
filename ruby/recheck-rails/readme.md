@@ -21,7 +21,7 @@ Generate basic checks based on your existing models with:
 
     bundle exec rails recheck:setup
 
-See the [recheck gem README](https://github.com/recheckdev/ruby/recheck) to see
+See the [recheck gem README](../recheck/readme.md) to see
 how to run and expand your suite of checks.
 
 
