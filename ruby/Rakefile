@@ -2,6 +2,18 @@ VERSION_FILE = "recheck/lib/recheck/version.rb"
 require_relative VERSION_FILE
 require "io/console"
 
+def system!(*args)
+  puts "Running: #{args}"
+  system(*args) || abort("\nCommand #{args} failed")
+end
+
+desc "Run test suites"
+task :test do
+  recheck_pass = system("cd recheck; bundle exec megatest")
+  recheck_rails_pass = system("cd recheck-rails; bundle exec megatest")
+  recheck_pass == 0 && recheck_rails_pass == 0
+end
+
 desc "Bump version number"
 task :bump, [:version] do |_, args|
   version = args[:version]
@@ -184,6 +196,10 @@ task :release do
 
   # Run check, build, and push tasks
   begin
+    unless Rake::Task["test"].invoke
+      puts "Tests failed; release halted"
+      exit 1
+    end
     Rake::Task["check"].invoke
     Rake::Task["build"].invoke
     Rake::Task["push"].invoke
