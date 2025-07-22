@@ -33,10 +33,10 @@ jobs:
           remote-repository-name: "dco-signatures"
           branch: 'main' # cannot be a protected branch
           path-to-signatures: "recheckdev/recheck/dco_v1.1.json" # path mirrors the org + repo
-          allowlist: []
+          # allowlist: []
           path-to-document: "/dco.txt" # copy of https://developercertificate.org/
           create-file-commit-message: "Creating file for storing DCO certifications"
-          signed-commit-message: "DCO 1.1 certified by $contributorName in PR $pullRequestNo"
+          signed-commit-message: "DCO 1.1 certified by $contributorName in $owner/$repo#${pullRequestNo}"
           custom-notsigned-prcomment: "Hi, this is the DCO Assistant bot. Please read the [Developer Certificate of Origin](https://developercertificate.org) (also available in this repo at /dco.txt) and post a comment with exactly the text below to affirm that you have the right to submit code under the project license. You only have to do this once, and your code will not be merged wtihout it. ([More info](https://osr.finos.org/docs/bok/artifacts/clas-and-dcos))"
           custom-pr-sign-comment: ${{ env.STATEMENT }}
           custom-allsigned-prcomment: "All contributors have certified the DCO."
