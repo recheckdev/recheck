@@ -35,10 +35,12 @@ module Recheck
       #
       # around_run -> for each Checker class:
       #   around_checker ->
-      #     run each query() method
-      #     for each 'check_' method on the checker:
-      #       for each record queried:
-      #         around_check -> check(record)
+      #     around_query ->
+      #       run each query() method
+      #       for each 'check_' method on the checker:
+      #         for each record queried:
+      #           around_check ->
+      #             check(record)
 
       def around_run(checkers: [])
         total_count = yield
