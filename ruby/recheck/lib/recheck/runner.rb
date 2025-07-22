@@ -160,6 +160,7 @@ module Recheck
         @total_counts
       end
       @yields.raise_unless_all_reporters_yielded(hook: :around_run)
+      @total_counts
     end
   end
 end

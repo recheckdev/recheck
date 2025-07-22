@@ -20,6 +20,7 @@ class ReporterTest < Test
 
     @mock_error = Recheck::Error.new(
       checker: @test_checker,
+      query: :query,
       check: :check_test,
       record: @test_record,
       type: :fail,
