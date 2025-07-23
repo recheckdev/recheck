@@ -1,5 +1,6 @@
 ## ## [Unreleased]
 
+* setup: Generate a query for LengthValidation.
 * setup: Generate a Checker from ActiveRecord validations.
   Only PresenceValidation to start.
 

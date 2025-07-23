@@ -1,133 +1,30 @@
 require_relative '<%= "../" * depth %>recheck_helper'
 
-<%
-# TODO 1998 called, it wants its php templating back
-%>
-
 # Generated <%= Date.today.iso8601 %> for <%= model_root_filename %>
 
 class <%= class_name %>ValidationChecker < Recheck::Checker::Base
-  <% model.validators.each_with_index do |validator, index| %>
+  <% queries.each do |query| %>
+    # <%= query.inspect -%>
     <%
-    attrs = validator.attributes
-    multiple = attrs.count > 1
-    query_method_name = "query_#{validator.kind}_#{attrs.join('_')}"
-    %>
-    # <%= validator.inspect.gsub(/(#<[\w:]+):0x[0-9a-f]+ /, '\1 ') %><%
-
-    if (virtual = attrs.reject { model.columns_hash[it.to_s] }).any? %>
-    # Skipping, one or more attributes (<%= virtual.join(',') %>) are not database-backed
-    <%
-      next
+    case query
+    when Placeholder %>
+      # <%= query.comment %>
+      <%
+    when FunctionPlaceholder
+      %>
+      def <%= query.name %>
+        # <%= query.comment %>
+      end
+      <%
+    when Query
+      %><%= query.warning ? "# #{query.warning}" : "" %>
+      def <%= query.name %>
+        <%= query.comment ? "# #{query.comment}" : "" %>
+        <%= class_name %>.where(<%= query.or_clauses.first %>)<%= (query.or_clauses[1..].map {".or(#{class_name}.where(#{it}))"}).join(" ") %>.find_each
+      end
+      <%
     end
-
-    # TODO check all :on - skip if only :create, but [] implies :update
-    # what other states are there?
-    # if validator.options[:on]
-
-    if validator.options[:if] || validator.options[:unless] %>
-    # Can't automatically translate this validation's :if or :unless into a query.
-    # def <%= query_method_name %>
-    #   <%= model.name %>.where(...)
-    # end
-    <%
-      next
-    end
-
-    case validator
-    when ActiveModel::BlockValidator %>
-      # Can't automatically translate a Ruby block into a query.
-    <% when ActiveModel::Validations::ConfirmationValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveModel::Validations::FormatValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveModel::Validations::InclusionValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveRecord::Validations::AbsenceValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveRecord::Validations::AssociatedValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveRecord::Validations::LengthValidator
-      non_string = attrs.reject { |attr| [:string, :text].include? model.columns_hash[attr.to_s].sql_type_metadata.type }
-      if non_string.any? %>
-        # Don't know how to validate the length of non-string attributes (<%= non_string.join(', ') %>)
-        # Please tell me about your use case.
-      <% else %>
-        def <%= query_method_name %>
-          <% if multiple %><%= model %>.none<% end %>
-            <%
-              attrs.each do |attr|
-                column = model.columns_hash[attr.to_s]
-
-                %> <% if multiple %>.or(<% end %> <%= model %>.none <% # attr or
-
-                # if in: 1..3 is given, it overwrites minimum: and maximum:
-                # half open rage only overwrites the one
-                # is is always enforced, so is: 4 and minimum: 5 will always fail validation
-                if validator.options[:minimum]
-                  %> .or(<%= model %>.where("length(`<%= column.name %>`) < ?", <%= validator.options[:minimum] %>)) <%
-                end
-                if validator.options[:maximum]
-                  %> .or(<%= model %>.where("length(`<%= column.name %>`) > ?", <%= validator.options[:maximum] %>)) <%
-                end
-                if validator.options[:is]
-                  %> .or(<%= model %>.where("length(`<%= column.name %>`) != ?", <%= validator.options[:is] %>)) <%
-                end
-                if !validator.options[:allow_nil] && column.null
-                  %> .or(<%= model %>.where(<%= attr %>: nil)) <%
-                end
-                %> <% if multiple %>)<% end %> <% # attr or
-              end
-
-            %>
-        end
-      <% end %>
-    <% when ActiveRecord::Validations::NumericalityValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% when ActiveRecord::Validations::PresenceValidator
-    %>
-      def <%= query_method_name %>
-        <% if multiple %><%= model %>.none<% end %>
-          <%
-            attrs.each do |attr|
-              column = model.columns_hash[attr.to_s]
-
-              %> <% if multiple %>.or(<% end %> <%= model %>.none <% # attr or
-              if !validator.options[:allow_blank]
-                case column.sql_type_metadata.type
-                when :string
-                  %> .or(<%= model %>.where("TRIM(`<%= column.name %>`) = ''")) <%
-                end
-              end
-              if !validator.options[:allow_nil] && column.null
-                %> .or(<%= model %>.where(<%= attr %>: nil)) <%
-              end
-              %> <% if multiple %>)<% end %> <% # attr or
-            end
-
-          %>
-      end
-    <% when ActiveRecord::Validations::UniquenessValidator %>
-      def <%= query_method_name %>
-        # Coming soon to the Recheck beta
-      end
-    <% else %>
-    # Unknown or unhandled validator, can't generate a query.
-    <% end %>
-
-  <% end %>
+  end %>
 
   # these queries only find records that don't pass validation so the check always fails
   def check_no_invalid_records_found(_)

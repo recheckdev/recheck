@@ -2,6 +2,8 @@ require "pathname"
 
 require "erb"
 
+require_relative "validation"
+
 module Recheck
   module Command
     class Setup
@@ -44,11 +46,99 @@ module Recheck
           validation_check_filename = "recheck/validation/#{model_filename}"
           puts "  #{validation_check_filename}"
           FileUtils.mkdir_p(File.dirname(validation_check_filename))
-          rendered = ERB.new(validation_template).result_with_hash({class_name:, depth:, model:, model_root_filename:})
+          binding = Validation.new(class_name:, depth:, model:, model_root_filename:, queries: queries(model:)).get_binding
+          rendered = ERB.new(validation_template, trim_mode: "-").result(binding)
           File.write(validation_check_filename, rendered)
 
           FileUtils.mkdir_p("recheck/regression")
         end
+      end
+
+      def queries model:
+        model.validators.map do |validator|
+          # validators take a list of attributes but operate on them individually
+          validator.attributes.map do |attr|
+            name = "query_#{validator.kind}_#{attr}"
+            # remove memory addresses; just noise
+            inspect = validator.inspect.gsub(/(#<[\w:]+):0x[0-9a-f]+ /, '\1 ')
+
+            column = model.columns_hash[attr.to_s]
+            next Placeholder.new inspect:, comment: "Can't query attribute #{attr}, it's not a database column" if column.nil?
+            type = column.sql_type_metadata.type
+
+            if validator.options[:if] || validator.options[:unless]
+              next Placeholder.new inspect:, comment: "Can't automatically translate this validation's :if or :unless into a query"
+            end
+
+            # normalizing - if not specified or [], on: means [:create, :udpate]
+            on = validator.options[:on] || []
+            on = [:create, :update] if on.empty?
+            if validator.options[:on] == [:create]
+              next Placeholder.new inspect:, comment: "Only validates on: :create, so there's nothing to validate for persisted records"
+            end
+
+            warning = if validator.options[:allow_nil] && !column.null
+              "Warning: model #{model.name} validates #{attr} with :allow_nil but column #{column.name} is NOT NULL, so a 'valid' record can't be saved.\nRemove :allow_nil or make the column nullable."
+            end
+
+            case validator
+            when ActiveModel::BlockValidator
+              Placeholder.new inspect:, comment: "Can't automatically translate a Ruby block into a query."
+            when ActiveModel::Validations::ConfirmationValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveModel::Validations::FormatValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveModel::Validations::InclusionValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveRecord::Validations::AbsenceValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveRecord::Validations::AssociatedValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveRecord::Validations::LengthValidator
+              or_clauses = []
+              if type == :stirng || type == :integer
+                if validator.options[:is]
+                  or_clauses << %{"LENGTH(`#{column.name}`) = '')"}
+                end
+                if validator.options[:minimum] && validator.options[:maximum]
+                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:minimum]} and "LENGTH(`#{column.name}`) <= #{validator.options[:maximum]}}
+                elsif validator.options[:minimum]
+                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:minimum]}}
+                elsif validator.options[:maximum]
+                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:maximum]}}
+                end
+              elsif type == :boolean
+                comment = "Validating length of a boolean is backend-dependednt and a strange idea."
+              else
+                comment = "Recheck doesn't know how to handle presence on a #{type}, please report."
+              end
+              if !validator.options[:allow_nil] && !validator.options[:allow_blank]
+                or_clauses << "#{column.name}: nil"
+              end
+            when ActiveRecord::Validations::NumericalityValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            when ActiveRecord::Validations::PresenceValidator
+              if validator.options[:allow_blank]
+                next Placeholder.new inspect:, comment: "Validates presence of #{attr} with :allow_blank, which can never fail."
+              end
+              or_clauses = []
+              if !validator.options[:allow_nil]
+                or_clauses << "#{column.name}: nil"
+              end
+              case type
+              when :string
+                or_clauses << %{"TRIM(`#{column.name}`) = ''"}
+              when :boolean
+                or_clauses << "#{column.name}: false"
+              else
+                comment = "Recheck doesn't know how to handle presence on a #{type}, please report."
+              end
+              Query.new inspect:, name:, warning:, comment:, or_clauses:
+            when ActiveRecord::Validations::UniquenessValidator
+              FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
+            end
+          end
+        end.flatten
       end
     end
   end
