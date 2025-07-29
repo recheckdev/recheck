@@ -1,4 +1,6 @@
-## ## [Unreleased]
+## [Unreleased]
+
+## 0.5.0 - 2025-07-30
 
 * setup: Generate a query for LengthValidation.
 * setup: Generate a Checker from ActiveRecord validations.

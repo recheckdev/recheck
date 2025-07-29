@@ -1,5 +1,8 @@
-## ## [Unreleased]
+## [Unreleased]
 
+## 0.5.0 - 2025-07-30
+
+* setup: Generate some docs for reporters and checkers.
 * Runner, reporter: add `around_query`
 
 ## 0.4.0 - 2025-07-16

@@ -89,13 +89,13 @@ task :check_gem, [:gem_name] => [] do |_, args|
     end
 
     # Check for current version
-    current_version_section = sections.find { |s| s.match?(/^## \[#{Regexp.escape(Recheck::VERSION)}\]/o) }
+    current_version_section = sections.find { |s| s.match?(/^## #{Regexp.escape(Recheck::VERSION)}/o) }
     if current_version_section.nil?
       puts "Error: #{gem_name}/#{changelog_path} is missing entry for version #{Recheck::VERSION}"
       errors = true
     else
       # Check if the current version section has content
-      version_content = current_version_section.gsub(/^## \[#{Regexp.escape(Recheck::VERSION)}\].*?$/o, "").strip
+      version_content = current_version_section.gsub(/^## #{Regexp.escape(Recheck::VERSION)}.*?$/o, "").strip
       next_heading = version_content.match(/^##\s/)
 
       if next_heading || version_content.empty?
