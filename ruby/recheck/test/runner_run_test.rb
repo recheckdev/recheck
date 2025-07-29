@@ -85,7 +85,7 @@ class RunnerRunTest < Test
     ], calls[-2..]
 
     # each checker's query_test is called exactly once
-    puts calls.inspect
+    # puts calls.inspect
     assert_equal 1, calls.count { |c| c[0] == :checker1 && c[1] == :query_test }
     assert_equal 1, calls.count { |c| c[0] == :checker2 && c[1] == :query_test }
 

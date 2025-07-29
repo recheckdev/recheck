@@ -49,8 +49,6 @@ module Recheck
           binding = Validation.new(class_name:, depth:, model:, model_root_filename:, queries: queries(model:)).get_binding
           rendered = ERB.new(validation_template, trim_mode: "-").result(binding)
           File.write(validation_check_filename, rendered)
-
-          FileUtils.mkdir_p("recheck/regression")
         end
       end
 

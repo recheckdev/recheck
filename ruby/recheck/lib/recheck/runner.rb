@@ -146,6 +146,7 @@ module Recheck
                 end
                 nil # yield nothing around_query
               end
+              @yields.raise_unless_all_reporters_yielded(hook: :around_query)
             rescue *PASSTHROUGH_EXCEPTIONS
               raise
             rescue => e
