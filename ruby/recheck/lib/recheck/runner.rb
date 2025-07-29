@@ -110,38 +110,41 @@ module Recheck
           reduce(reporters: @reporters, hook: :around_checker, kwargs: {checker:, queries:, checks:}) do
             # for each query_...
             queries.each do |query|
-              checker_counts.increment :queries
-              # for each record...
-              # TODO: must handle if the query method yields (find_each) OR returns (current)
-              (checker.public_send(query) || []).each do |record|
-                # for each check_method...
-                checks.each do |check|
-                  raw_result = nil
-                  reduce(reporters: @reporters, hook: :around_check, kwargs: {checker:, query:, check:, record:}) do
-                    raw_result = checker.public_send(check, record)
-                    result = raw_result ? pass : Error.new(checker:, query:, check:, record:, type: :fail, exception: nil)
+              reduce(reporters: @reporters, hook: :around_query, kwargs: {checker:, query:, checks:}) do
+                checker_counts.increment :queries
+                # for each record...
+                # TODO: must handle if the query method yields (find_each) OR returns (current)
+                (checker.public_send(query) || []).each do |record|
+                  # for each check_method...
+                  checks.each do |check|
+                    raw_result = nil
+                    reduce(reporters: @reporters, hook: :around_check, kwargs: {checker:, query:, check:, record:}) do
+                      raw_result = checker.public_send(check, record)
+                      result = raw_result ? pass : Error.new(checker:, query:, check:, record:, type: :fail, exception: nil)
 
-                    checker_counts.increment(result.type)
-                    break if checker_counts.reached_blanket_failure?
+                      checker_counts.increment(result.type)
+                      break if checker_counts.reached_blanket_failure?
 
-                    result
-                  rescue *PASSTHROUGH_EXCEPTIONS
-                    raise
-                  rescue => e
-                    Error.new(checker:, query:, check:, record:, type: :exception, exception: e)
+                      result
+                    rescue *PASSTHROUGH_EXCEPTIONS
+                      raise
+                    rescue => e
+                      Error.new(checker:, query:, check:, record:, type: :exception, exception: e)
+                    end
+                  end
+                  @yields.raise_unless_all_reporters_yielded(hook: :around_check)
+
+                  # if the first 20 error out, halt the check method, it's probably buggy
+                  if checker_counts.reached_blanket_failure?
+                    checker_counts.increment :blanket
+
+                    error = Error.new(checker:, query:, check: nil, record: nil, type: :blanket, exception: nil)
+                    @reporters.each { it.halt(checker:, query:, check: nil, error:) }
+
+                    break
                   end
                 end
-                @yields.raise_unless_all_reporters_yielded(hook: :around_check)
-
-                # if the first 20 error out, halt the check method, it's probably buggy
-                if checker_counts.reached_blanket_failure?
-                  checker_counts.increment :blanket
-
-                  error = Error.new(checker:, query:, check: nil, record: nil, type: :blanket, exception: nil)
-                  @reporters.each { it.halt(checker:, query:, check: nil, error:) }
-
-                  break
-                end
+                nil # yield nothing around_query
               end
             rescue *PASSTHROUGH_EXCEPTIONS
               raise

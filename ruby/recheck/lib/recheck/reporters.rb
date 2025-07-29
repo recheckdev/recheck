@@ -50,6 +50,10 @@ module Recheck
         counts = yield
       end
 
+      def around_query(checker:, query:, checks: [])
+        yield
+      end
+
       def around_check(checker:, query:, check:, record:)
         result = yield
       end
