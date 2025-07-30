@@ -270,8 +270,9 @@ class EmailTeamReporter < Recheck::Reporter::Base
     raise ArgumentError, "API key not accepted for team lookup"
   end
 
-  # There are three hooks, all optional:
+  # There are four hooks, all optional:
   # around_run: fires around the entire run
+  # around_query: fires around each query
   # around_checker: fires around each checker
   # around_check: fires for each call to a check_ of each record
 
@@ -287,7 +288,7 @@ class EmailTeamReporter < Recheck::Reporter::Base
     }).send_now!
   end
 
-  # This Reporter doesn't need a around_check_class_run or around_query,
+  # This Reporter doesn't need a around_checker or around_query,
   # so it doesn't define them.
 
   def around_check(checker:, query:, check:)

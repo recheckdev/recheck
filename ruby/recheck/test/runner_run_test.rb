@@ -22,6 +22,13 @@ class MockReporter < Recheck::Checker::Base
     result
   end
 
+  def around_query(kwargs, &block)
+    @calls << [@name, :around_query_start, kwargs[:check], kwargs[:record]]
+    result = block.call
+    @calls << [@name, :around_query_end, result]
+    result
+  end
+
   def around_check(kwargs, &block)
     @calls << [@name, :around_check_start, kwargs[:check], kwargs[:record]]
     result = block.call
@@ -78,6 +85,7 @@ class RunnerRunTest < Test
     ], calls[-2..]
 
     # each checker's query_test is called exactly once
+    # puts calls.inspect
     assert_equal 1, calls.count { |c| c[0] == :checker1 && c[1] == :query_test }
     assert_equal 1, calls.count { |c| c[0] == :checker2 && c[1] == :query_test }
 

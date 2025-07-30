@@ -136,7 +136,7 @@ module Recheck
 
       def run
         create_helper
-        create_reporter_dir
+        create_samples
         create_site_checks
         setup_model_checks
         run_linter
@@ -168,8 +168,9 @@ module Recheck
         copy_template("#{template_dir}/recheck_helper.rb", "recheck/recheck_helper.rb")
       end
 
-      def create_reporter_dir
-        FileUtils.mkdir_p("recheck/reporter")
+      def create_samples
+        copy_template("#{template_dir}/reporter_sample.rb", "recheck/reporter/reporter.rb.sample")
+        copy_template("#{template_dir}/regression_checker_sample.rb", "recheck/regression/regression_checker.rb.sample")
       end
 
       def create_site_checks

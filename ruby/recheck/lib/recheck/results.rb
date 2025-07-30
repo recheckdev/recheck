@@ -12,7 +12,7 @@ module Recheck
     end
   end
 
-  Error = Data.define(:checker, :query, :check, :record, :type, :exception) do
+  Error = Data.define(:type, :checker, :query, :check, :record, :exception) do
     def initialize(*args)
       super
       raise ArgumentError unless ERROR_TYPES.include? type

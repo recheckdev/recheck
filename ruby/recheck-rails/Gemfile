@@ -5,8 +5,10 @@ source "https://rubygems.org"
 gemspec
 
 group :development do
+  gem "rails"
   gem "megatest"
   gem "rake"
+  gem "sqlite3"
   gem "standard"
   gem "standard-performance"
 end
