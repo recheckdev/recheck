@@ -341,7 +341,7 @@ Recheck::Runner.new(
 
 Run `recheck reporters` to list your loaded reporters.
 
-Read [the reporters that ship with Recheck](https://github.com/recheckdev/recheck/ruby/lib/reporters) for more ideas.
+Read [the reporters that ship with Recheck](lib/recheck/reporters.rb) for more ideas.
 
 
 ## Production
