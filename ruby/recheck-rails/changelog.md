@@ -1,9 +1,5 @@
 ## ## [Unreleased]
 
-## [0.4.0] - 2025-07-16
-
-* Public beta.
-
 * setup: Generate a query for LengthValidation.
 * setup: Generate a Checker from ActiveRecord validations.
   Only PresenceValidation to start.
