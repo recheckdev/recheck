@@ -6,8 +6,6 @@ class LengthValidation < Test
   end
 
   def setup
-    ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-
     ActiveRecord::Schema.define do
       create_table :users do |t|
         t.string :username

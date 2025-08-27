@@ -13,7 +13,7 @@ module Recheck
         puts "Introspecting ApplicationRecord..."
 
         # surely there's a better way to find the gem's root
-        template_dir = File.join(File.expand_path("../..", __dir__), "template")
+        template_dir = File.join(File.expand_path("../../..", __dir__), "template")
         model_template = File.read("#{template_dir}/application_record_check.rb.erb")
         validation_template = File.read("#{template_dir}/validation_checker.rb.erb")
 

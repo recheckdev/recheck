@@ -6,7 +6,9 @@ gemspec
 
 group :development do
   gem "megatest"
+  gem "rails"
   gem "rake"
+  gem "sqlite3"
   gem "standard"
   gem "standard-performance"
 end

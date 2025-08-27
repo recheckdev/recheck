@@ -9,12 +9,14 @@ module Recheck
   end
 end
 
-require_relative "../vendor/optimist"
-require_relative "recheck/checkers"
-require_relative "recheck/cli"
-require_relative "recheck/commands"
-require_relative "recheck/results"
-require_relative "recheck/count_stats"
-require_relative "recheck/reporters"
-require_relative "recheck/runner"
-require_relative "recheck/version"
+require "recheck/vendor/optimist"
+require "recheck/checkers"
+require "recheck/cli"
+require "recheck/commands"
+require "recheck/results"
+require "recheck/count_stats"
+require "recheck/reporters"
+require "recheck/runner"
+require "recheck/version"
+
+require "recheck/rails/railtie" if defined?(::Rails)

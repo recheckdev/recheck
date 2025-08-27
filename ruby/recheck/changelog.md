@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+* folded recheck-rails gem into primary gem with conditional loading
+
 ## 0.5.0 - 2025-07-30
 
 * setup: Generate some docs for reporters and checkers.

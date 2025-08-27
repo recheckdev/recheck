@@ -1,10 +1,5 @@
 require "test_helper"
 
-module ActiveRecord
-  class Base
-  end
-end
-
 class ReporterTestModel < ActiveRecord::Base
   def id
     42
@@ -15,6 +10,11 @@ class TestChecker; end
 
 class ReporterTest < Test
   def setup
+    ActiveRecord::Schema.define do
+      create_table :reporter_test_models do |t|
+      end
+    end
+
     @test_record = ReporterTestModel.new
     @test_checker = TestChecker.new
 

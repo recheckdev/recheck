@@ -51,14 +51,14 @@ It's worth writing a check any time you have:
 Add Recheck to your `Gemfile`:
 
     gem "recheck"
-    # if you're using rails, instead add:
-    gem "recheck-rails"
 
 Recheck runs against production data, so don't put it only in a `development` or `test` group like a testing tool.
 
-Generate basic checks based on your existing models with:
+Generate basic checks:
 
-    $ bundle exec recheck setup
+    # if you're using Rails, run:
+
+    $ bundle exec rails recheck:setup
     creating recheck/
     generating recheck/recheck_helper.rb
     creating recheck/site/domain_checker.rb
@@ -72,7 +72,13 @@ Generate basic checks based on your existing models with:
     detected Sidekiq workers, creating recheck/worker/
       app/workers/refresh.rb -> recheck/worker/refresh_checker.rb
 
-Run `git add --all` and `git commit` to record this baseline.
+
+    # if you're not using Rails, run:
+
+    $ bundle exec recheck setup
+    [you'll get shorter but pretty similar output]
+
+Run `git add --all` and `git commit` to record a baseline because you'll probably edit them in a minute.
 
 **You should immediately run these default checks to start finding bad data.**
 

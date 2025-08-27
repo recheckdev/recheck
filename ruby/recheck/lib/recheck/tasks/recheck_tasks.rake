@@ -5,7 +5,7 @@ namespace :recheck do
     Rails.application.eager_load!
 
     require "recheck/commands"
-    require "recheck-rails/setup"
+    require "recheck/rails/setup"
 
     Recheck::Command::Setup.new(argv: []).run
   end
