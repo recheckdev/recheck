@@ -1,5 +1,3 @@
-require "active_record"
-
 class PresenceValidation < Test
   class User < ActiveRecord::Base
     self.table_name = :users
@@ -9,7 +7,6 @@ class PresenceValidation < Test
 
   def setup
     ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-    # ActiveRecord::Base.logger = Logger.new($stdout)
 
     ActiveRecord::Schema.define do
       create_table :users do |t|
