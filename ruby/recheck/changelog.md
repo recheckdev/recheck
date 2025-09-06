@@ -1,4 +1,6 @@
-## [Unreleased]
+## ## [Unreleased]
+
+## 0.6.0 - 2025-09-05
 
 * folded recheck-rails gem into primary gem with conditional loading
 

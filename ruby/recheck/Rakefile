@@ -45,7 +45,7 @@ end
 
 desc "Build all gems"
 task :build do
-  system! "gem build #{gem_name}.gemspec -o #{gem_filename gem_name}"
+  system! "gem build #{gem_name}.gemspec -o #{gem_filename}"
 end
 
 desc "Check the gem's changelog.md"
@@ -91,7 +91,7 @@ end
 
 desc "Push gem to RubyGems"
 task :push do
-  system! "gem push #{gem_filename gem_name}"
+  system! "gem push #{gem_filename}"
 end
 
 desc "Release new version"
