@@ -105,6 +105,9 @@ module Recheck
                 elsif validator.options[:maximum]
                   or_clauses << %{"LENGTH(`#{column.name}`) > #{validator.options[:maximum]}"}
                 end
+                if validator.options[:allow_blank]
+                  or_clauses = or_clauses.map { |clause| clause[..-2] + %( and `#{column.name}` != ''") }
+                end
               elsif type == :boolean
                 comment = "Validating length of a boolean is backend-dependent and a strange idea."
               else
