@@ -99,11 +99,11 @@ module Recheck
                   or_clauses << %{"LENGTH(`#{column.name}`) = '')"}
                 end
                 if validator.options[:minimum] && validator.options[:maximum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:minimum]} and LENGTH(`#{column.name}`) >= #{validator.options[:maximum]}"}
+                  or_clauses << %{"LENGTH(`#{column.name}`) < #{validator.options[:minimum]} and LENGTH(`#{column.name}`) > #{validator.options[:maximum]}"}
                 elsif validator.options[:minimum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:minimum]}"}
+                  or_clauses << %{"LENGTH(`#{column.name}`) < #{validator.options[:minimum]}"}
                 elsif validator.options[:maximum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:maximum]}"}
+                  or_clauses << %{"LENGTH(`#{column.name}`) > #{validator.options[:maximum]}"}
                 end
               elsif type == :boolean
                 comment = "Validating length of a boolean is backend-dependent and a strange idea."

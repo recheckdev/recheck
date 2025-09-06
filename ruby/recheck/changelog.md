@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+* Fixed > vs >= in generated ActiveRecord length validation
+
 ## 0.8.0 - 2025-09-05
 
 * Fixed generated check for ActiveRecord length validation
