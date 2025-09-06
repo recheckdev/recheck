@@ -94,25 +94,26 @@ module Recheck
               FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
             when ActiveRecord::Validations::LengthValidator
               or_clauses = []
-              if type == :stirng || type == :integer
+              if type == :string || type == :text || type == :integer
                 if validator.options[:is]
                   or_clauses << %{"LENGTH(`#{column.name}`) = '')"}
                 end
                 if validator.options[:minimum] && validator.options[:maximum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:minimum]} and "LENGTH(`#{column.name}`) <= #{validator.options[:maximum]}}
+                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:minimum]} and LENGTH(`#{column.name}`) >= #{validator.options[:maximum]}"}
                 elsif validator.options[:minimum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:minimum]}}
+                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:minimum]}"}
                 elsif validator.options[:maximum]
-                  or_clauses << %{"LENGTH(`#{column.name}`) <= #{validator.options[:maximum]}}
+                  or_clauses << %{"LENGTH(`#{column.name}`) >= #{validator.options[:maximum]}"}
                 end
               elsif type == :boolean
-                comment = "Validating length of a boolean is backend-dependednt and a strange idea."
+                comment = "Validating length of a boolean is backend-dependent and a strange idea."
               else
-                comment = "Recheck doesn't know how to handle presence on a #{type}, please report."
+                comment = "Recheck doesn't know how to handle length on a #{type}, please report."
               end
               if !validator.options[:allow_nil] && !validator.options[:allow_blank]
                 or_clauses << "#{column.name}: nil"
               end
+              Query.new inspect:, name:, warning:, comment:, or_clauses:
             when ActiveRecord::Validations::NumericalityValidator
               FunctionPlaceholder.new inspect:, name:, comment: "Coming soon to Recheck beta"
             when ActiveRecord::Validations::PresenceValidator

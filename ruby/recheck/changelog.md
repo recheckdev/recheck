@@ -1,5 +1,7 @@
 ## ## [Unreleased]
 
+* Fixed generated check for ActiveRecord length validation
+
 ## 0.7.0 - 2025-09-05
 
 * Fixed including rake tasks.
