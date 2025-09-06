@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## 0.11.0 - 2025-09-06
+
 * Fixed ActiveRecord length validation with allow_blank.
 
 ## 0.10.0 - 2025-09-05
