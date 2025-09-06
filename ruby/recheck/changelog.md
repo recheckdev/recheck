@@ -1,8 +1,10 @@
 ## ## [Unreleased]
 
+* Fixed including rake tasks.
+
 ## 0.6.0 - 2025-09-05
 
-* folded recheck-rails gem into primary gem with conditional loading
+* Folded recheck-rails gem into primary gem with conditional loading
 
 ## 0.5.0 - 2025-07-30
 

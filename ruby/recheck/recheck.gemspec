@@ -19,10 +19,17 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "https://github.com/recheckdev/recheck/ruby/recheck/blob/main/CHANGELOG.md"
 
   # Specify which files should be added to the gem when it is released.
-  spec.files = Dir.chdir(__dir__) do
-    `find . -type f \\( -name "*.rb" -o -path "./exe/*" \\) -print0`.split("\x0").map { |f| f.sub(/\A\.\//, "") }.reject do |f|
+  spec.files = Dir.chdir(File.expand_path(__dir__)) do
+    `jj file list .`.split.reject do |f|
       (File.expand_path(f) == __FILE__) ||
-        f.start_with?(*%w[bin/ test/ spec/ features/ .git .github Gemfile])
+        f.start_with?(*%w[
+          .
+          bin/
+          build/
+          Gemfile
+          Rakefile
+          test/
+        ])
     end
   end
 
