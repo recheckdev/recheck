@@ -96,7 +96,7 @@ module Recheck
               or_clauses = []
               if type == :string || type == :text || type == :integer
                 if validator.options[:is]
-                  or_clauses << %{"LENGTH(`#{column.name}`) = #{validator.options[:is]})"}
+                  or_clauses << %{"LENGTH(`#{column.name}`) != #{validator.options[:is]}"}
                 end
                 if validator.options[:minimum] && validator.options[:maximum]
                   or_clauses << %{"LENGTH(`#{column.name}`) < #{validator.options[:minimum]} and LENGTH(`#{column.name}`) > #{validator.options[:maximum]}"}

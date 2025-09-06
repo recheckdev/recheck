@@ -1,4 +1,6 @@
-## [Unreleased]
+## ## [Unreleased]
+
+## 0.10.0 - 2025-09-05
 
 * Fixed :is ActiveRecord length validation
 
