@@ -1,5 +1,7 @@
 ## ## [Unreleased]
 
+## 0.7.0 - 2025-09-05
+
 * Fixed including rake tasks.
 
 ## 0.6.0 - 2025-09-05

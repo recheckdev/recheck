@@ -124,7 +124,6 @@ task :release do
 
   # Update changelog
   changelog_path = "changelog.md"
-  next unless File.exist?(changelog_path)
 
   content = File.read(changelog_path)
   sections = content.split(/^## /)
