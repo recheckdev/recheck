@@ -130,9 +130,12 @@ task :release do
 
   # Find the Unreleased section
   header = sections[0]
-  unreleased_idx = sections.find_index { |s| s.start_with?("[Unreleased]") }
+  unreleased_idx = sections.find_index { |s| s.include?("[Unreleased]") }
 
-  exit 1 unless unreleased_idx
+  unless unreleased_idx
+    puts "Nothing in Unreleased section of changelog"
+    exit 1
+  end
   unreleased = sections[unreleased_idx]
   unreleased_content = unreleased.gsub(/^\[Unreleased\].*?$/, "").strip
 
