@@ -1,4 +1,6 @@
-## [Unreleased]
+## ## [Unreleased]
+
+## 0.12.0 - 2025-10-08
 
 * Replace use if block `it` (3.4) with `_1` (2.7).
 
