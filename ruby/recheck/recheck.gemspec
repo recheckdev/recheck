@@ -20,17 +20,17 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    `jj file list .`.split.reject do |f|
-      (File.expand_path(f) == __FILE__) ||
-        f.start_with?(*%w[
-          .
-          bin/
-          build/
-          Gemfile
-          Rakefile
-          test/
-        ])
-    end
+    Dir.glob([
+      "changelog.md",
+      "exe/**/*",
+      "Gemfile",
+      "Gemfile.lock",
+      "lib/**/*",
+      "license.md",
+      "readme.md",
+      "recheck.gemspec",
+      "template/**/*"
+    ])
   end
 
   spec.bindir = "exe"
