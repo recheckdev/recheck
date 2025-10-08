@@ -9,7 +9,7 @@ module Recheck
     end
 
     def initialize
-      @counts = RESULT_TYPES.map { [it, 0] }.to_h
+      @counts = RESULT_TYPES.map { [_1, 0] }.to_h
       @queries = 0
     end
 

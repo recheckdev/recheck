@@ -20,7 +20,7 @@ class <%= class_name %>ValidationChecker < Recheck::Checker::Base
       %><%= query.warning ? "# #{query.warning}" : "" %>
       def <%= query.name %>
         <%= query.comment ? "# #{query.comment}" : "" %>
-        <%= class_name %>.where(<%= query.or_clauses.first %>)<%= (query.or_clauses.drop(1).map {".or(#{class_name}.where(#{it}))"}).join("") %>.find_each
+        <%= class_name %>.where(<%= query.or_clauses.first %>)<%= (query.or_clauses.drop(1).map {".or(#{class_name}.where(#{_1}))"}).join("") %>.find_each
       end
       <%
     end

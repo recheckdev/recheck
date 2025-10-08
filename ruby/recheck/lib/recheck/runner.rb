@@ -73,7 +73,7 @@ module Recheck
 
       error = Error.new(checker:, query: nil, check: nil, record: nil, type:, exception: nil)
       reduce(reporters:, hook: :around_checker, kwargs: {checker:, queries:, checks:}) do
-        reporters.each { it.halt(checker:, query: nil, check: nil, error:) }
+        reporters.each { _1.halt(checker:, query: nil, check: nil, error:) }
         checker_counts
       end
     end
@@ -139,7 +139,7 @@ module Recheck
                     checker_counts.increment :blanket
 
                     error = Error.new(checker:, query:, check: nil, record: nil, type: :blanket, exception: nil)
-                    @reporters.each { it.halt(checker:, query:, check: nil, error:) }
+                    @reporters.each { _1.halt(checker:, query:, check: nil, error:) }
 
                     break
                   end

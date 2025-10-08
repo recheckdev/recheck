@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+* Replace use if block `it` (3.4) with `_1` (2.7).
+
 ## 0.11.0 - 2025-09-06
 
 * Fixed ActiveRecord length validation with allow_blank.
